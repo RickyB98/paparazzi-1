@@ -1,0 +1,18 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="competition">
+  <doc>
+    <description>Competition Module Group 3</description>
+  </doc>
+  <header>
+    <file name="competition.h"/>
+  </header>
+  <init fun="competition_init()"/>
+  <periodic fun="competition_loop()" freq="1"/>
+  <event fun="competition_event()"/>
+  <datalink message="datalink" fun="competition_datalink()"/>
+  <makefile>
+    <file name="competition.c"/>
+  </makefile>
+</module>
+
