@@ -12,9 +12,13 @@ import matplotlib.pyplot as plt
 import time
 
 # open image
-img_path = 'datasets/cyberzoo_poles/20190121-135009/'
-img_nmb = 80211420
+#img_path = 'datasets/cyberzoo_poles/20190121-135009/'
+#img_nmb = 80211420
+img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
+img_nmb = 93349216 #96849201
+
 img_name = img_path + str(img_nmb) + ".jpg"
+
 
 if not os.path.isfile(img_name):
     sys.exit()
@@ -25,7 +29,7 @@ horizon = np.zeros(img.shape[0])
 
 def isFloor(pixel):
     if ((pixel[0]>70 and pixel[0]<100) and 
-    (pixel[1]>80 and pixel[1]<100) and 
+    (pixel[1]>70 and pixel[1]<100) and 
     (pixel[2]>70 and pixel[2]<100)):
         return True
     else:
@@ -37,25 +41,25 @@ def findHorizonCandidate(img,edges,p0):
     y = p0[1]
     onFloor = isFloor(img[y][x][:])
     track[y][x] = True
-    while not onFloor and x<img.shape[1]:
+    while not onFloor and x<img.shape[1]-1:
         x += 1
         onFloor = isFloor(img[y][x][:])
         track[y][x] = True
 
     # move up to closest edge
     onEdge = (edges[y][x] > 0)
-    while not onEdge and x<img.shape[1]:
+    while not onEdge and x<img.shape[1]-1:
         x += 1
         onEdge = (edges[y][x] > 0)
         track[y][x] = True
     return [x,y]
 
-def followHorizonLeft(edges,p0):
+def followHorizonLeft(edges,p0,y_lim):
     global track, horizon
     x = p0[0]
     y = p0[1]
 
-    while (y<edges.shape[0]-1 and x>0 and x<edges.shape[1]-1):
+    while (x>0 and x<edges.shape[1]-1):
         y -= 1
         if (edges[y][x] > 0):     # edge continues right
             pass
@@ -123,7 +127,7 @@ def floorDetect(img):
     return floor_mask
 
 def snakeHorizon(img):
-    global track
+    global track, horizon
     img_size = img.shape
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # edge detection
@@ -137,63 +141,70 @@ def snakeHorizon(img):
     obstacles = np.zeros(img.shape[0])
     x = 0
     y = 0
+    y_max = 0
     while (y<img_size[0]):
         [x,y] = findHorizonCandidate(img,edges,[x,y])
         if (x==img_size[1]-1):
+            x = 0
             y += 1
             continue
         else:
             horizon[y] = x
-            y_min = followHorizonLeft(edges, [x,y])
+            y_min = followHorizonLeft(edges, [x,y], y_max)
             y_max = followHorizonRight(edges, [x,y])
             y = y_max + 1
-            x = 0    
-        break
-
-
-       # paint track of snake algorithm
-    img_w_track = img
-    for i in range(img_size[0]):
-        for j in range(img_size[1]):
-            if track[i][j]:
-                img_w_track[i][j][0] = 0
-                img_w_track[i][j][1] = 0
-                img_w_track[i][j][2] = 255
-    cv2.imshow('track',img_w_track)
+            x = 0
+            # if the segment is too short, scrap it
+            if (y_max-y_min < 5):
+                for i in range(y_min,y_max+1):
+                    horizon[i] = 0    
+        #break
+    #print("exit while")
 
 
 
-# imagepath
-img_path = 'datasets/cyberzoo_poles/20190121-135009/'
-img_nmb = 80211420
-#img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
-#img_nmb = 93549223#80211420
-img_name = img_path + str(img_nmb) + ".jpg"
-#img_name = './80211420.jpg'
-if os.path.isfile(img_name):
-    img = cv2.imread(img_name)
-    cv2.imshow('image',img)
 
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    cv2.imshow('grayscale',gray)
 
-    eq = cv2.equalizeHist(gray)
-    cv2.imshow('equalized gray', eq)
-    
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    cl1 = clahe.apply(gray)
-    cv2.imshow('CLAHE',cl1)   
 
-    #edges = cv2.Canny(cl1,30,80) 
-    #cv2.imshow('edges',edges)
-    
-    floor = floorDetect(img)
-    cv2.imshow('floor',floor)
-    snakeHorizon(img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
-    #plt.title('Raw image')
-    #time.sleep(5)
-else:
-    print("not a valid image")
+#cv2.imshow('image',img)
+
+gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+#cv2.imshow('grayscale',gray)
+
+eq = cv2.equalizeHist(gray)
+#cv2.imshow('equalized gray', eq)
+
+#clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+#cl1 = clahe.apply(gray)
+#cv2.imshow('CLAHE',cl1)   
+
+#edges = cv2.Canny(cl1,30,80) 
+#cv2.imshow('edges',edges)
+
+#floor = floorDetect(img)
+#cv2.imshow('floor',floor)
+snakeHorizon(img)
+img_w_track = cv2.imread(img_name)
+img_w_horizon = cv2.imread(img_name)
+
+for i in range(img.shape[0]):
+    for j in range(img.shape[1]):
+        if track[i][j]:
+            img_w_track[i][j][0] = 0
+            img_w_track[i][j][1] = 0
+            img_w_track[i][j][2] = 255
+
+    value = int(horizon[i])
+    img_w_horizon[i][value][0] = 0
+    img_w_horizon[i][value][1] = 0
+    img_w_horizon[i][value][2] = 255
+    img_w_track[i][value][0] = 0
+    img_w_track[i][value][1] = 0
+    img_w_track[i][value][2] = 255
+
+
+cv2.imshow('track',img_w_track)
+cv2.imshow('horizon',img_w_horizon)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
