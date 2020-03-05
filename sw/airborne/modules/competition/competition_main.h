@@ -18,17 +18,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 /**
- * @file "modules/competition/competition.h"
+ * @file "modules/competition/competition_main.h"
  * @author Group 3
  * Competition Module Group 3
  */
 
-#ifndef COMPETITION_H
-#define COMPETITION_H
+#ifndef COMPETITION_MAIN_H
+#define COMPETITION_MAIN_H
 
-// extern void competition_init();
-// extern void competition_loop();
-// extern void competition_event();
+extern void competition_init();
+extern void competition_loop();
+extern void competition_event();
 // extern void competition_datalink();
 
 #endif

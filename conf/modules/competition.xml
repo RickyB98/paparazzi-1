@@ -5,14 +5,13 @@
     <description>Competition Module Group 3</description>
   </doc>
   <header>
-    <file name="competition.h"/>
+    <file name="competition_main.h"/>
   </header>
   <init fun="competition_init()"/>
-  <periodic fun="competition_loop()" freq="1"/>
+  <periodic fun="competition_loop()" freq="1"></periodic>
   <event fun="competition_event()"/>
-  <datalink message="datalink" fun="competition_datalink()"/>
   <makefile>
-    <file name="competition.c"/>
+    <file name="competition_main.c"/>
   </makefile>
 </module>
 
