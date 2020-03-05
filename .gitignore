@@ -194,3 +194,6 @@ tests/results/*
 
 # K-develop
 *.kate-swp
+
+# Datasets
+datasets/*
