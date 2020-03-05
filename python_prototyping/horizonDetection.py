@@ -5,10 +5,23 @@
 #
 
 import os
+import sys
 from cv2 import cv2
 import numpy as np 
 import matplotlib.pyplot as plt 
 import time
+
+# open image
+img_path = 'datasets/cyberzoo_poles/20190121-135009/'
+img_nmb = 80211420
+img_name = img_path + str(img_nmb) + ".jpg"
+
+if not os.path.isfile(img_name):
+    sys.exit()
+
+img = cv2.imread(img_name)
+track = np.zeros(img.shape[0:2])
+horizon = np.zeros(img.shape[0])
 
 def isFloor(pixel):
     if ((pixel[0]>70 and pixel[0]<100) and 
@@ -18,6 +31,58 @@ def isFloor(pixel):
     else:
         return False
 
+def findHorizonCandidate(img,edges,p0):
+    global track
+    x = p0[0]
+    y = p0[1]
+    onFloor = isFloor(img[y][x][:])
+    track[y][x] = True
+    while not onFloor and x<img.shape[1]:
+        x += 1
+        onFloor = isFloor(img[y][x][:])
+        track[y][x] = True
+
+    # move up to closest edge
+    onEdge = (edges[y][x] > 0)
+    while not onEdge and x<img.shape[1]:
+        x += 1
+        onEdge = (edges[y][x] > 0)
+        track[y][x] = True
+    return [x,y]
+
+def followHorizonLeft(edges,horizon):
+    y_min = 0
+    return y_min
+    
+def followHorizonRight(edges,p0):
+    global track, horizon
+    x = p0[0]
+    y = p0[1]
+    while (y<edges.shape[0]-1 and x>0 and x<edges.shape[1]-1):
+        y += 1
+        if (edges[y][x] > 0):     # edge continues right
+            pass
+        elif (edges[y][x-1] > 0): # edge continues bottom right
+            x -= 1
+        elif (edges[y][x+1] > 0): # edge continues top right
+            x += 1                  
+        else:                     # increase step
+            y += 1
+            if (edges[y][x] > 0):
+                horizon[y-1] = x
+            elif (edges[y][x-1] > 0):
+                horizon[y-1] = x 
+                x -= 1
+            elif (edges[y][x+1] > 0): 
+                horizon[y-1] = x
+                x += 1
+            else:
+                y = y-2     # if the edge does not continue, revert to last know edge position
+                break
+        horizon[y] = x
+
+    return y
+    
 
 def floorDetect(img):
     img_size = img.shape[0:2]
@@ -32,6 +97,7 @@ def floorDetect(img):
     return floor_mask
 
 def snakeHorizon(img):
+    global track
     img_size = img.shape
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # edge detection
@@ -40,80 +106,21 @@ def snakeHorizon(img):
     edges = cv2.Canny(cl,20,80)
     cv2.imshow('edges',edges)
     
-    # track the snake
-    track = np.zeros(img_size[0:2])
-    
-    # find a "floor" pixel at the bottom of the image
-    # with the image turned, x is 'up' and y is 'right' in reality
+
+
     x = 0
     y = 0
-    onFloor = isFloor(img[y][x][:])
-    track[y][x] = True
-    while not onFloor:
-        y += 1
-        onFloor = isFloor(img[y][x][:])
-        track[y][x] = True
-
-    # move up to closest edge
-    onEdge = (edges[y][x] > 0)
-    while not onEdge and y>=0:
-        x += 1
-        onEdge = (edges[y][x] > 0)
-        track[y][x] = True
-
-    initial_point_on_edge = [x,y]
-    start_edge = initial_point_on_edge
-    # follow edge to the left of the image (-y direction)
-    while (y>0 and x>0 and x<img_size[1]-1):
-        if (edges[y-1][x] > 0):
-            y -= 1                  # edge continues left
-        elif (edges[y-1][x-1] > 0):   
-            y -= 1
-            x -= 1                  # edge continues bottom left
-        elif (edges[y-1][x+1] > 0):
-            y -= 1
-            x += 1                  # edge continues top left
-        else:
-            start_edge = [x,y]      # edge doesn't continue
-
-        track[y][x] = True
-
-    # follow edge to the right of the image (+y direction)
-    x = initial_point_on_edge[0]
-    y = initial_point_on_edge[1]
-    steps_dir_x = 0
-    steps_dir_y = 0
-
-    while (y<img_size[0]-1 and x>0 and x<img_size[1]-1):
-        y += 1
-        if (edges[y][x] > 0):     # edge continues right
-            pass
-        elif (edges[y][x-1] > 0): # edge continues bottom right
-            x -= 1
-        elif (edges[y][x+1] > 0): # edge continues top right
-            x += 1                  
-        else:                     # increase step
+    while (y<img_size[0]):
+        [x,y] = findHorizonCandidate(img,edges,[x,y])
+        if (x==img_size[1]-1):
             y += 1
-            if (edges[y][x] > 0):
-                pass
-            elif (edges[y][x-1] > 0): 
-                x -= 1
-            elif (edges[y][x+1] > 0): 
-                x += 1
-            elif (edges[y][x-2] > 0):
-                x -= 2
-            elif (edges[y][x+2] > 0):
-                x += 2
-            else:
-                #edge_dir[0] = x - start_edge[0]
-                #edge_dir[1] = x - start_edge[1]
-
-                break
-
-
-        
-        track[y][x] = True
-    
+            continue
+        else:
+            horizon[y] = x
+            y_min = followHorizonLeft(edges, [x,y])
+            y_max = followHorizonRight(edges, [x,y])
+            y = y_max + 1
+            x = 0    
 
     # paint track of snake algorithm
     img_w_track = img
@@ -138,15 +145,15 @@ if os.path.isfile(img_name):
     img = cv2.imread(img_name)
     cv2.imshow('image',img)
 
-    #gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    #cv2.imshow('grayscale',gray)
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    cv2.imshow('grayscale',gray)
 
-    #eq = cv2.equalizeHist(gray)
-    #cv2.imshow('equalized gray', eq)
+    eq = cv2.equalizeHist(gray)
+    cv2.imshow('equalized gray', eq)
     
-    #clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    #cl1 = clahe.apply(gray)
-    #cv2.imshow('CLAHE',cl1)   
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    cl1 = clahe.apply(gray)
+    cv2.imshow('CLAHE',cl1)   
 
     #edges = cv2.Canny(cl1,30,80) 
     #cv2.imshow('edges',edges)
