@@ -50,9 +50,35 @@ def findHorizonCandidate(img,edges,p0):
         track[y][x] = True
     return [x,y]
 
-def followHorizonLeft(edges,horizon):
-    y_min = 0
-    return y_min
+def followHorizonLeft(edges,p0):
+    global track, horizon
+    x = p0[0]
+    y = p0[1]
+
+    while (y<edges.shape[0]-1 and x>0 and x<edges.shape[1]-1):
+        y -= 1
+        if (edges[y][x] > 0):     # edge continues right
+            pass
+        elif (edges[y][x-1] > 0): # edge continues bottom right
+            x -= 1
+        elif (edges[y][x+1] > 0): # edge continues top right
+            x += 1                  
+        else:                     # increase step
+            y -= 1
+            if (edges[y][x] > 0):
+                horizon[y+1] = x
+            elif (edges[y][x-1] > 0):
+                horizon[y+1] = x 
+                x -= 1
+            elif (edges[y][x+1] > 0): 
+                horizon[y+1] = x
+                x += 1
+            else:
+                y = y+2     # if the edge does not continue, revert to last know edge position
+                break
+        horizon[y] = x
+
+    return y
     
 def followHorizonRight(edges,p0):
     global track, horizon
@@ -108,6 +134,7 @@ def snakeHorizon(img):
     
 
 
+    obstacles = np.zeros(img.shape[0])
     x = 0
     y = 0
     while (y<img_size[0]):
@@ -121,8 +148,10 @@ def snakeHorizon(img):
             y_max = followHorizonRight(edges, [x,y])
             y = y_max + 1
             x = 0    
+        break
 
-    # paint track of snake algorithm
+
+       # paint track of snake algorithm
     img_w_track = img
     for i in range(img_size[0]):
         for j in range(img_size[1]):
