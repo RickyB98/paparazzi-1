@@ -12,15 +12,15 @@ import matplotlib.pyplot as plt
 import random
 
 # Parameters
-ransac_iter = 10            # ransac iterations
+ransac_iter = 20            # ransac iterations
 ransac_max_error = 5        # maximum error a point can have in ransac
-obstacle_threshold = 10     # distance from horizon to be considered an obstacle
+obstacle_threshold = 5     # distance from horizon to be considered an obstacle
 
 # open image
-img_path = 'datasets/cyberzoo_poles/20190121-135009/'
-img_nmb = 80211420
-#img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
-#img_nmb = 96849201 #93349216 
+#img_path = 'datasets/cyberzoo_poles/20190121-135009/'
+#img_nmb = 80211420
+img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
+img_nmb = 93349216 #96849201  
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
 
@@ -66,7 +66,7 @@ def followHorizonLeft(edges,p0,y_lim):
     x = p0[0]
     y = p0[1]
 
-    while (x>0 and x<edges.shape[1]-1):
+    while (y>y_lim and x>0 and x<edges.shape[1]-1):
         y -= 1
         if (edges[y][x] > 0):     # edge continues right
             pass
@@ -154,7 +154,9 @@ def snakeHorizon(img):
             continue
         else:
             horizon[y] = x
-            y_min = followHorizonLeft(edges, [x,y], y_max)
+            # can limit y_lim to y_max to avoid overwriting past edges, however, it would be helpful to know which one is better
+            # other idea: do snake horizon > ransacHorizon > second snake horizon only keeping lines close to the ransac Horizon
+            y_min = followHorizonLeft(edges, [x,y], 0)  
             y_max = followHorizonRight(edges, [x,y])
             # could go right first and use distance to decide if we want to overwrite when moving left
             y = y_max + 1
@@ -240,7 +242,7 @@ best_horizon = ransacHorizonLine(ransac_iter, ransac_max_error)
 obstacle = np.zeros(horizon.shape)
 for i in range(horizon.shape[0]):       # pylint: disable=E1136     # pylint/issues/3139
     obstacle_threshold = 10
-    if (best_horizon[i]-horizon[i] > obstacle_threshold):
+    if (abs(best_horizon[i]-horizon[i]) > obstacle_threshold):
         obstacle[i] = horizon[i]
     else:
         obstacle[i] = -1
@@ -265,9 +267,9 @@ for i in range(img.shape[0]):
     img_w_horizon[i][int(best_horizon[i])][0] = 0
     img_w_horizon[i][int(best_horizon[i])][1] = 255
     img_w_horizon[i][int(best_horizon[i])][2] = 0
-    img_w_track[i][value][0] = 0
-    img_w_track[i][value][1] = 0
-    img_w_track[i][value][2] = 255
+    img_w_track[i][int(horizon[i])][0] = 0
+    img_w_track[i][int(horizon[i])][1] = 0
+    img_w_track[i][int(horizon[i])][2] = 255
 
 
 cv2.imshow('track',img_w_track)
