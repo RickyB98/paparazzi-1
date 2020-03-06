@@ -17,10 +17,10 @@ ransac_max_error = 5        # maximum error a point can have in ransac
 obstacle_threshold = 10     # distance from horizon to be considered an obstacle
 
 # open image
-#img_path = 'datasets/cyberzoo_poles/20190121-135009/'
-#img_nmb = 80211420
-img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
-img_nmb = 96849201 #93349216 
+img_path = 'datasets/cyberzoo_poles/20190121-135009/'
+img_nmb = 80211420
+#img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
+#img_nmb = 96849201 #93349216 
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
 
@@ -258,9 +258,10 @@ for i in range(img.shape[0]):
 
     value = int(obstacle[i])
     if value >= 0:
-        img_w_horizon[i][value][0] = 0
-        img_w_horizon[i][value][1] = 0
-        img_w_horizon[i][value][2] = 255
+        for x in range(value, value+3):
+            img_w_horizon[i][x][0] = 0
+            img_w_horizon[i][x][1] = 0
+            img_w_horizon[i][x][2] = 255
     img_w_horizon[i][int(best_horizon[i])][0] = 0
     img_w_horizon[i][int(best_horizon[i])][1] = 255
     img_w_horizon[i][int(best_horizon[i])][2] = 0
