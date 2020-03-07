@@ -1,0 +1,29 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="collision_trainer">
+  <doc>
+    <description>Module to train bebop to avoid obstacles</description>
+  </doc>
+  <header>
+    <file name="collision_trainer.h"/>
+  </header>
+  <init fun="collision_trainer_init()"/>
+  <periodic fun="gazebo_loop()" freq="10"/>
+  <periodic fun="guidance_loop()" freq="10"/>
+  <makefile>
+    <raw>
+      nps.CXXFLAGS += $(shell pkg-config gazebo --cflags)
+      nps.LDFLAGS  += $(shell pkg-config gazebo --libs)
+
+      <!-- OpenCV for video debugging -->
+      NPS_DEBUG_VIDEO ?= 0
+      ifeq (,$(findstring $(NPS_DEBUG_VIDEO),0 FALSE))
+        nps.CXXFLAGS += -DNPS_DEBUG_VIDEO
+        nps.CXXFLAGS += $(shell pkg-config opencv)
+        nps.LDFLAGS  += -lopencv_imgproc -lopencv_highgui -lopencv_core
+      endif
+    </raw>
+    <file name="collision_trainer.cpp"/>
+  </makefile>
+</module>
+

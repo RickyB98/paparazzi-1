@@ -18,20 +18,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 /**
- * @file "modules/competition/competition_main.h"
+ * @file "modules/collision_trainer/collision_trainer.h"
  * @author Group 3
- * Competition Module Group 3
+ * Module to train bebop to avoid obstacles
  */
 
-#ifndef COMPETITION_MAIN_H
-#define COMPETITION_MAIN_H
+#ifndef COLLISION_TRAINER_H
+#define COLLISION_TRAINER_H
 
-extern void competition_init();
-extern void competition_loop();
-extern void competition_event();
-// extern void competition_datalink();
-
-struct image_t * pic_broadcast_func(struct image_t *img);
+extern void collision_trainer_init();
+extern void gazebo_loop();
+extern void guidance_loop();
 
 #endif
 
