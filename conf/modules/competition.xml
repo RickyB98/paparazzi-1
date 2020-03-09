@@ -8,7 +8,7 @@
     <file name="competition_main.h"/>
   </header>
   <init fun="competition_init()"/>
-  <periodic fun="competition_loop()" freq="1"></periodic>
+  <periodic fun="competition_loop()" freq="20"></periodic>
   <event fun="competition_event()"/>
   <makefile>
     <file name="competition_main.c"/>

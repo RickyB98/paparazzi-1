@@ -37,6 +37,12 @@
 gazebo::sensors::SensorManager *mgr = gazebo::sensors::SensorManager::Instance();
 gazebo::sensors::ContactSensorPtr cs;
 
+uint32_t collisions = 0;
+float prevX = 0;
+float prevY = 0;
+
+float distance = 0;
+
 void MovePillar(const std::string &pillar);
 void LoopGazebo();
 void InitGazebo();
@@ -50,32 +56,46 @@ void LoopGazebo()
   cs = std::static_pointer_cast<gazebo::sensors::ContactSensor>(mgr->GetSensor("contactsensor"));
 
   gazebo::msgs::Contacts contacts = cs->Contacts();
+
+  gazebo::physics::WorldPtr world = gazebo::physics::get_world(cs->WorldName());
+  const ignition::math::Pose3d pose = world->ModelByName("bebop")->WorldPose();
+
+  distance += sqrt(pow((float)(pose.Pos().X()) - prevX, 2) + pow((float)(pose.Pos().Y()) - prevY, 2));
+
+  prevX = (float)(pose.Pos().X());
+  prevY = (float)(pose.Pos().Y());
+
   for (int i = 0; i < contacts.contact_size(); ++i)
   {
     std::string c1 = contacts.contact(i).collision1();
     std::string c2 = contacts.contact(i).collision2();
-
-    MovePillar(c2);
+    std::string name = c2.substr(0, c2.find("::"));
+    if (name.compare("cyberzoo_model") == 0)
+      continue;
+    ++collisions;
+    if (collisions >= 3)
+    {
+      MovePillar(name);
+    }
   }
 }
 
 void MovePillar(const std::string &pillar)
 {
   gazebo::physics::WorldPtr world = gazebo::physics::get_world(cs->WorldName());
-  std::string name = pillar.substr(0, pillar.find("::"));
-  if (name.compare("cyberzoo_model") == 0)
-    return;
-  std::cout << "Collision with " << name << ", moving pillar...";
-  world->ModelByName(name)->SetWorldPose(ignition::math::Pose3d(
+  
+  world->ModelByName(pillar)->SetWorldPose(ignition::math::Pose3d(
       (double)rand() / RAND_MAX * 6. - 3.,
       (double)rand() / RAND_MAX * 6. - 3.,
       0., 0., 0., 0.));
   std::cout << "ok" << std::endl;
-  
 }
 
 extern "C"
 {
+#define MODULES_DATALINK_C
+#define NAV_C
+
 #include "modules/collision_trainer/collision_trainer.h"
 
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
@@ -89,42 +109,78 @@ extern "C"
 #include "modules/computer_vision/video_capture.h"
 #include "modules/computer_vision/video_thread_nps.h"
 #include "modules/computer_vision/cv.h"
+#include "modules/competition/competition_main.h"
 
 #include "generated/periodic_telemetry.h"
 #include "lib/encoding/jpeg.h"
 #include "pprzlink/messages.h"
 #include "pprzlink/intermcu_msg.h"
+#include "pprzlink/dl_protocol.h"
 
 #include "subsystems/datalink/telemetry.h"
+#include "subsystems/datalink/datalink.h"
 
-  struct image_t *pic_broadcast_func(struct image_t *img)
+#include "generated/flight_plan.h"
+
+#include "generated/modules.h"
+
+#define IN_TRAINING 0
+#define REPOSITION 1
+
+  uint8_t trainingState = IN_TRAINING;
+
+  static void send_training(struct transport_tx *trans, struct link_device *dev)
   {
-
-    // Create jpg image from raw frame
-    struct image_t img_jpeg;
-    image_create(&img_jpeg, img->w, img->h, IMAGE_JPEG);
-    jpeg_encode_image(img, &img_jpeg, 99, true);
-    FILE *fp = fopen("/tmp/pprz.jpg", "w");
-    fwrite(img_jpeg.buf, sizeof(uint8_t), img_jpeg.buf_size, fp);
-    fclose(fp);
-
-    return NULL;
-  }
-
-  static void send_ned_pos_func(struct transport_tx *trans, struct link_device *dev)
-  {
-    struct NedCoor_f *ned = stateGetPositionNed_f();
-    pprz_msg_send_NED_POS(trans, dev, AC_ID, &(ned->x), &(ned->y));
+    pprz_msg_send_TRAINING_STATE(trans, dev, AC_ID,
+                                 &distance, &collisions, &trainingState);
   }
 
   void collision_trainer_init()
   {
-    cv_add_to_device(&VIDEO_CAPTURE_CAMERA, pic_broadcast_func, 5);
-    register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_NED_POS, send_ned_pos_func);
+    NedCoor_f *ned = stateGetPositionNed_f();
+    prevX = ned->x;
+    prevY = ned->y;
+
+    register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_TRAINING_STATE, send_training);
   }
 
   void guidance_loop()
   {
+    switch (trainingState)
+    {
+    case IN_TRAINING:
+    {
+      NedCoor_f *ned = stateGetPositionNed_f();
+      if (!InsideObstacleZone(ned->x, ned->y))
+      {
+        trainingState = REPOSITION;
+      }
+    }
+    break;
+    case REPOSITION:
+    default:
+    {
+      guidance_h_set_guided_pos(0., 0.);
+
+      NedCoor_f *ned = stateGetPositionNed_f();
+      if (ned->x < .1 && ned->y < .1)
+      {
+        trainingState = IN_TRAINING;
+        distance = 0;
+        collisions = 0;
+      }
+    }
+    break;
+    }
+  }
+
+  void guidance_datalink()
+  {
+    float speed = DL_TRAINING_ACTION_speed(dl_buffer);
+    float heading = DL_TRAINING_ACTION_heading(dl_buffer);
+    fprintf(stderr, "Received training speed %f, heading %f\n", speed, heading);
+    setSpeed(speed);
+    setHeadingRate(heading * 3.14159 / 180.);
   }
 
   void gazebo_loop()

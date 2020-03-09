@@ -29,6 +29,7 @@
 extern void collision_trainer_init();
 extern void gazebo_loop();
 extern void guidance_loop();
+extern void guidance_datalink();
 
 #endif
 

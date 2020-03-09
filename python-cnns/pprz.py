@@ -3,11 +3,13 @@
 
 from pprzlink.lib.v2.python.pprzlink import ivy
 import time
+import numpy as np
 
 class Status:
     def __init__(self):
-        self.north = 0 # y in gazebo
-        self.east = 0  # x in gazebo
+        self.distance = 0 # y in gazebo
+        self.collisions = 0  # x in gazebo
+        self.state = 0
 
     def update_position(self, north, east):
         self.north = north
@@ -19,8 +21,13 @@ def waypoint_moved(spl: str, status: Status):
     status.east = spl[3]
 
 
+def training_state(spl: str, status: Status):
+    status.distance = float(spl[2])
+    status.collisions = int(spl[3])
+    status.state = int(spl[4])
+
 opts = {
-    "NED_POS": waypoint_moved
+    "TRAINING_STATE": training_state
 }
 
 
@@ -39,7 +46,23 @@ i = ivy.IvyMessagesInterface(
     verbose=True
 )
 
-i.bind_raw(process_incoming_message, '(44 NED_POS.*)')
+i.bind_raw(process_incoming_message, '(44 TRAINING_STATE.*)')
 
-#while True:
-    #print(str(status.x) + " " + str(status.y) + " " + str(status.z))
+
+
+
+
+# while True:
+#     time.sleep(1)
+
+#     message = ivy.PprzMessage("datalink", "TRAINING_ACTION")
+
+#     message["reset"] = 0
+#     message["speed"] = float(2.)
+#     message["heading"] = float(60.)
+#     message["ac_id"] = 44
+
+#     out = i.send_raw_datalink(message)
+#     print(out)
+
+# %%

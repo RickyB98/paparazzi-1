@@ -11,27 +11,31 @@
 
 #define ORANGE_AVOIDER_VERBOSE TRUE
 
-void competition_init()
-{
+float _headingRate = 0;
+float _speed = 0;
+
+void setHeadingRate(float headingRate) {
+	_headingRate = headingRate;
 }
 
-int k = 0;
+void setSpeed(float speed) {
+	_speed = speed;
+}
+
+
+void competition_init()
+{
+		
+}
 
 void competition_loop()
 {
-	struct NedCoor_f *ned = stateGetPositionNed_f();
 
-	fprintf(stderr, "pos: %f, %f, %f\n", ned->x, ned->y, ned->z);
+	guidance_h_set_guided_heading_rate(_headingRate);
+	struct FloatEulers * eulers = stateGetNedToBodyEulers_f();
+	
+	guidance_h_set_guided_vel(_speed * cos(eulers->psi), _speed * sin(eulers->psi));
 
-	double targetN = 2 * cos((k % 10) / 10. * 2 * 3.14159);
-	double targetE = 2 * sin((k % 10) / 10. * 2 * 3.14159);
-
-	guidance_h_set_guided_pos(targetN, targetE);
-
-	if (abs(ned->x - targetN) < .05 && abs(ned->y - targetE) < .05)
-	{
-		++k;
-	}
 }
 
 void competition_event()

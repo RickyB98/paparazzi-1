@@ -91,7 +91,10 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "datalink.h": "c",
+        "extra_pprz_dl.h": "c",
+        "pprz_dl.h": "c"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,

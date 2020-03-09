@@ -10,6 +10,7 @@
   <init fun="collision_trainer_init()"/>
   <periodic fun="gazebo_loop()" freq="10"/>
   <periodic fun="guidance_loop()" freq="10"/>
+  <datalink fun="guidance_datalink()" message="TRAINING_ACTION" />
   <makefile>
     <raw>
       nps.CXXFLAGS += $(shell pkg-config gazebo --cflags)
