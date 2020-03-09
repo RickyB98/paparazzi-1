@@ -13,8 +13,6 @@ from torch.autograd import Variable
 # Importing the other Python files
 import experience_replay, image_preprocessing
 
-from pprzlink.lib.v2.python.pprzlink import ivy
-
 # Import paparazzi environment
 from pprz_env import PaparazziGym
 
@@ -26,6 +24,7 @@ class CNN(nn.Module):
     
     def __init__(self, number_actions):
         super(CNN, self).__init__()
+
         self.convolution1 = nn.Conv2d(in_channels = 1, out_channels = 32, kernel_size = 5)
         self.convolution2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3)
         self.convolution3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2)
@@ -146,8 +145,7 @@ for epoch in range(1, nb_epochs + 1):
         print("Congratulations, your AI wins")
         break
 
-# Closing the Doom environment
-doom_env.close()
+env.quit()
 
 
 # %%

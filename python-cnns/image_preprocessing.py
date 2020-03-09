@@ -3,26 +3,37 @@
 # Importing the libraries
 import numpy as np
 import PIL.Image as Image
-
-from gym.core import ObservationWrapper
-from gym.spaces.box import Box
+import cv2
 
 # Preprocessing the Images
 
-class PreprocessImage(ObservationWrapper):
+class PreprocessImage:
     
-    def __init__(self, env, height = 64, width = 64, grayscale = True, crop = lambda img: img):
-        super(PreprocessImage, self).__init__(env)
+    def __init__(self, height = 64, width = 64, grayscale = True):
         self.img_size = (height, width)
         self.grayscale = grayscale
-        n_colors = 1 if self.grayscale else 3
-        self.observation_space = Box(0.0, 1.0, [n_colors, height, width])
 
-    def _observation(self, img):
-        img = np.array(Image.fromarray(img, self.img_size))
-        
+    def debug_show(self, img):
+    
+        cv2.imshow('frame', img)
+        while not cv2.waitKey(1) or not 0xFF == ord('q'):
+            None
+
+
+    def process(self, img):
         if self.grayscale:
-            img = img.mean(-1, keepdims = True)
-        img = np.transpose(img, (2, 0, 1))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        #self.debug_show(img)
+
+        img = Image.fromarray(img)
+        img = img.resize(self.img_size)
+
+        img = np.array(img)
+        print(img.shape)
+
+        #img = img.mean(-1, keepdims = True)
+        #img = np.transpose(img, )
         img = img.astype('float32') / 255.
-        return img
+
+        return np.array(img)

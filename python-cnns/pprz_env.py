@@ -32,6 +32,7 @@ class PaparazziGym:
 
     def __init__(self):
         os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "protocol_whitelist;file,rtp,udp"
+        self.preprocessor = image_preprocessing.PreprocessImage()
 
         self.speeds = [.5, 1., 1.5]
         self.headings = [-60., 0., 60.]
@@ -60,12 +61,8 @@ class PaparazziGym:
     def getSnapshot(self):
         _, img = self.cap.read()
 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        img = img.mean(-1, keepdims = True)
-        img = np.transpose(img, (2, 0, 1))
-        img = img.astype('float32') / 255.
-
+        img = self.preprocessor.process(img)
+        
         return img
 
     def reset(self):
@@ -80,6 +77,8 @@ class PaparazziGym:
 
         time.sleep(.1)
         self.collisionSeries = 0
+
+        return self.getSnapshot()
 
     def step(self, action):
         speed, heading = self.unwrapAction(action)
