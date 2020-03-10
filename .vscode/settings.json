@@ -98,5 +98,5 @@
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/home/parallels/anaconda3/envs/ivy/bin/python",
+    "python.pythonPath": "/home/parallels/anaconda3/envs/ivy27/bin/python",
 }

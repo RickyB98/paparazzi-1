@@ -2,21 +2,26 @@ import numpy as np
 import os
 import cv2
 import time
-from pprzlink.lib.v2.python.pprzlink import ivy
-#from pprzlink.lib.v2.python.pprzlink.messages import PprzMessage
 
+os.sys.path.append('/home/parallels/paparazzi-tudelft/python-cnns/pprzlink/lib/v2/python/')
+
+from pprzlink import ivy
+from pprzlink.message import PprzMessage
+
+import torch
+from torch.autograd import Variable
 
 import image_preprocessing
 
 class Status:
     def __init__(self):
-        self.distance = 0 # y in gazebo
-        self.collisions = 0  # x in gazebo
-        self.state = 0
+        self.distance = 0
+        self.collisions = 0
+        self.repositioning = False
         self.opts = {"TRAINING_STATE": self.update_state}
 
-    def process_incoming_message(self, source, pprz_message: str):
-        print(pprz_message)
+    def process_incoming_message(self, source, pprz_message):
+        #print(pprz_message)
         spl = pprz_message.split(" ")
         if len(spl) > 1 and spl[1] in self.opts:
             self.opts[spl[1]](spl)
@@ -24,7 +29,7 @@ class Status:
     def update_state(self, spl):
         self.distance = float(spl[2])
         self.collisions = int(spl[3])
-        self.state = int(spl[4])
+        self.repositioning = int(spl[4]) == 1
 
 
 
@@ -54,8 +59,8 @@ class PaparazziGym:
         self.cap.release()
 
     def unwrapAction(self, action):
-        speedidx = np.mod(action, 3)
-        headingidx = np.floor(action / 3)
+        speedidx = int(np.mod(action, 3))
+        headingidx = int(np.floor(action / 3))
         return self.speeds[speedidx], self.headings[headingidx]
         
     def getSnapshot(self):
@@ -63,7 +68,7 @@ class PaparazziGym:
 
         img = self.preprocessor.process(img)
         
-        return img
+        return torch.tensor(np.array(img, dtype = np.float32)).unsqueeze(0).unsqueeze(0)
 
     def reset(self):
         message = ivy.PprzMessage("datalink", "TRAINING_ACTION")
@@ -81,6 +86,9 @@ class PaparazziGym:
         return self.getSnapshot()
 
     def step(self, action):
+        while (self.status.repositioning):
+            None
+
         speed, heading = self.unwrapAction(action)
         message = ivy.PprzMessage("datalink", "TRAINING_ACTION")
 
@@ -94,10 +102,11 @@ class PaparazziGym:
         collisions = self.status.collisions
         distance = self.status.distance
 
-        time.sleep(.1)
+        time.sleep(.11)
 
         # read picture
         next_state = self.getSnapshot()
+        
         # read collision
         newColl = (self.status.collisions - collisions)
         # give reward
@@ -105,9 +114,12 @@ class PaparazziGym:
         newDist = (self.status.distance - distance)
 
         self.collisionSeries += newColl
-        is_done = self.collisionSeries >= 3
+        print(self.status.repositioning)
+        is_done = self.collisionSeries >= 3 or self.status.repositioning
 
         if is_done:
             self.collisionSeries = 0
 
-        return next_state, newColl * -100 + newDist * .1, is_done
+        reward = newColl * -1000 + newDist
+        print(reward)
+        return next_state, reward, is_done

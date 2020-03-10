@@ -24,11 +24,10 @@ class CNN(nn.Module):
     
     def __init__(self, number_actions):
         super(CNN, self).__init__()
-
         self.convolution1 = nn.Conv2d(in_channels = 1, out_channels = 32, kernel_size = 5)
         self.convolution2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3)
         self.convolution3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2)
-        self.fc1 = nn.Linear(in_features = self.count_neurons((1, 80, 80)), out_features = 40)
+        self.fc1 = nn.Linear(in_features = self.count_neurons((1, 64, 64)), out_features = 40)
         self.fc2 = nn.Linear(in_features = 40, out_features = number_actions)
 
     def count_neurons(self, image_dim):
@@ -45,6 +44,7 @@ class CNN(nn.Module):
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
+
         return x
 
 # Making the body
@@ -56,8 +56,8 @@ class SoftmaxBody(nn.Module):
         self.T = T
 
     def forward(self, outputs):
-        probs = F.softmax(outputs * self.T)   
-        actions = probs.multinomial()
+        probs = F.softmax(outputs * self.T)
+        actions = probs.multinomial(1) # WHAT?
         return actions
 
 # Making the AI
@@ -95,13 +95,24 @@ def eligibility_trace(batch):
     inputs = []
     targets = []
     for series in batch:
-        input = Variable(torch.from_numpy(np.array([series[0].state, series[-1].state], dtype = np.float32)))
-        output = cnn(input)
-        cumul_reward = 0.0 if series[-1].done else output[1].data.max()
+        #print(series[0].state.shape)
+        #try:
+        input1 = Variable(torch.from_numpy(np.array(series[0].state, dtype = np.float32)))
+        input2 = Variable(torch.from_numpy(np.array(series[-1].state, dtype = np.float32)))
+        #input = Variable(torch.from_numpy(np.array([series[0].state, series[-1].state], dtype = np.float32)))
+        #input = Variable(torch.from_numpy(np.array([series[0].state, series[-1].state])))
+        #except:
+        #    print(series)
+        #    print(series[0].state)
+        #    print(series[-1].state)
+    
+        output1 = cnn(input1)
+        output2 = cnn(input2)
+        cumul_reward = 0.0 if series[-1].done else output2.data.max()
         for step in reversed(series[:-1]):
             cumul_reward = step.reward + gamma * cumul_reward
-        state = series[0].state
-        target = output[0].data
+        state = np.array(series[0].state)
+        target = output1.data[0]
         target[series[0].action] = cumul_reward
         inputs.append(state)
         targets.append(target)
@@ -120,7 +131,10 @@ class MA:
         while len(self.list_of_rewards) > self.size:
             del self.list_of_rewards[0]
     def average(self):
+        if len(self.list_of_rewards) == 0: # issue
+            return 0
         return np.mean(self.list_of_rewards)
+
 ma = MA(100)
 
 # Training the AI
@@ -128,11 +142,17 @@ loss = nn.MSELoss()
 optimizer = optim.Adam(cnn.parameters(), lr = 0.001)
 nb_epochs = 100
 for epoch in range(1, nb_epochs + 1):
-    memory.run_steps(200)
+    memory.run_steps(32) # WAS 200
     for batch in memory.sample_batch(128):
         inputs, targets = eligibility_trace(batch)
-        inputs, targets = Variable(inputs), Variable(targets)
-        predictions = cnn(inputs)
+        targets = Variable(targets)
+        predictions = []
+        for input in inputs:
+            predictions.append(cnn(input))
+        #inputs = Variable(inputs)
+        predictions = torch.from_numpy(np.array(predictions, dtype = np.float32))
+        print(predictions)
+        print(targets)
         loss_error = loss(predictions, targets)
         optimizer.zero_grad()
         loss_error.backward()

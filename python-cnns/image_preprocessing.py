@@ -14,7 +14,6 @@ class PreprocessImage:
         self.grayscale = grayscale
 
     def debug_show(self, img):
-    
         cv2.imshow('frame', img)
         while not cv2.waitKey(1) or not 0xFF == ord('q'):
             None
@@ -24,16 +23,15 @@ class PreprocessImage:
         if self.grayscale:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        #self.debug_show(img)
-
         img = Image.fromarray(img)
         img = img.resize(self.img_size)
 
         img = np.array(img)
-        print(img.shape)
 
         #img = img.mean(-1, keepdims = True)
         #img = np.transpose(img, )
         img = img.astype('float32') / 255.
+
+        #self.debug_show(img)
 
         return np.array(img)

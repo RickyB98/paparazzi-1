@@ -34,6 +34,11 @@
 
 #include <sdf/sdf.hh>
 
+#define IN_TRAINING 0
+#define REPOSITION 1
+
+uint8_t trainingState = IN_TRAINING;
+
 gazebo::sensors::SensorManager *mgr = gazebo::sensors::SensorManager::Instance();
 gazebo::sensors::ContactSensorPtr cs;
 
@@ -67,13 +72,12 @@ void LoopGazebo()
 
   for (int i = 0; i < contacts.contact_size(); ++i)
   {
-    std::string c1 = contacts.contact(i).collision1();
     std::string c2 = contacts.contact(i).collision2();
     std::string name = c2.substr(0, c2.find("::"));
     if (name.compare("cyberzoo_model") == 0)
       continue;
     ++collisions;
-    if (collisions >= 3)
+    if (collisions >= 3 || trainingState == REPOSITION)
     {
       MovePillar(name);
     }
@@ -88,7 +92,6 @@ void MovePillar(const std::string &pillar)
       (double)rand() / RAND_MAX * 6. - 3.,
       (double)rand() / RAND_MAX * 6. - 3.,
       0., 0., 0., 0.));
-  std::cout << "ok" << std::endl;
 }
 
 extern "C"
@@ -124,11 +127,6 @@ extern "C"
 
 #include "generated/modules.h"
 
-#define IN_TRAINING 0
-#define REPOSITION 1
-
-  uint8_t trainingState = IN_TRAINING;
-
   static void send_training(struct transport_tx *trans, struct link_device *dev)
   {
     pprz_msg_send_TRAINING_STATE(trans, dev, AC_ID,
@@ -144,6 +142,14 @@ extern "C"
     register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_TRAINING_STATE, send_training);
   }
 
+
+  float recSpeed = 0.;
+  float recHeading = 0.;
+
+  float min(float f1, float f2) {
+    return f1 > f2 ? f2 : f1;
+  }
+
   void guidance_loop()
   {
     switch (trainingState)
@@ -154,20 +160,51 @@ extern "C"
       if (!InsideObstacleZone(ned->x, ned->y))
       {
         trainingState = REPOSITION;
+      } else {
+        setSpeed(recSpeed);
+        setHeadingRate(recHeading);
       }
     }
     break;
     case REPOSITION:
     default:
     {
-      guidance_h_set_guided_pos(0., 0.);
 
       NedCoor_f *ned = stateGetPositionNed_f();
-      if (ned->x < .1 && ned->y < .1)
+      float psi = atan2(ned->y, ned->x) + 3.14159;
+
+      while (psi > 2 * 3.14159) {
+        psi -= 2 * 3.14159;
+      }
+      while (psi < 0) {
+        psi += 2 * 3.14159;
+      }
+
+      // struct FloatEulers * eulers = stateGetNedToBodyEulers_f();
+
+      // float psi_m = eulers->psi;
+
+      // while (psi_m > 2 * 3.14159) {
+      //   psi_m -= 2 * 3.14159;
+      // }
+      // while (psi_m < 0) {
+      //   psi_m += 2 * 3.14159;
+      // }
+
+      // float err = (psi - psi_m) * ((ned->x * ned->y) > 0 && (abs(psi - psi_m) > .35) ? 1 : -1);
+
+      setHeading(psi);
+      setSpeed(2.);
+
+      fprintf(stderr, "psi: %f, x: %f, y: %f, \n", psi, ned->x, ned->y);
+
+      if (abs(ned->x) < .1 && abs(ned->y) < .1)
       {
         trainingState = IN_TRAINING;
         distance = 0;
         collisions = 0;
+        recSpeed = 0.;
+        recHeading = 0.;
       }
     }
     break;
@@ -176,11 +213,9 @@ extern "C"
 
   void guidance_datalink()
   {
-    float speed = DL_TRAINING_ACTION_speed(dl_buffer);
-    float heading = DL_TRAINING_ACTION_heading(dl_buffer);
-    fprintf(stderr, "Received training speed %f, heading %f\n", speed, heading);
-    setSpeed(speed);
-    setHeadingRate(heading * 3.14159 / 180.);
+    recSpeed = DL_TRAINING_ACTION_speed(dl_buffer);
+    recHeading = DL_TRAINING_ACTION_heading(dl_buffer);
+    fprintf(stderr, "Received training speed %f, heading %f\n", recSpeed, recHeading);
   }
 
   void gazebo_loop()
