@@ -15,6 +15,23 @@ import random
 ransac_iter = 20            # ransac iterations
 ransac_max_error = 5        # maximum error a point can have in ransac
 obstacle_threshold = 5     # distance from horizon to be considered an obstacle
+simulation = True
+
+# floor color thresholds
+if simulation:
+    B_low = 0
+    B_high = 30
+    R_low = 70
+    R_high = 110
+    G_low = 70
+    G_high = 100
+else:
+    B_low = 70
+    B_high = 100
+    R_low = 70
+    R_high = 100
+    G_low = 70
+    G_high = 100
 
 # open image
 #img_path = 'datasets/cyberzoo_poles/20190121-135009/'
@@ -23,6 +40,8 @@ img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
 img_nmb = 93349216 #96849201  
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
+img_path = 'datasets/sim_poles_panels_mats/20190121-161931/'
+img_nmb = 40800000
 
 img_name = img_path + str(img_nmb) + ".jpg"
 
@@ -35,10 +54,10 @@ track = np.zeros(img.shape[0:2])
 horizon = np.zeros(img.shape[0])
 
 def isFloor(pixel):
-    if ((pixel[0]>70 and pixel[0]<100) and 
-    (pixel[1]>70 and pixel[1]<100) and 
-    (pixel[2]>70 and pixel[2]<100)):
-        return True
+    if ((pixel[0]>B_low and pixel[0]<B_high) and 
+    (pixel[1]>R_low and pixel[1]<R_high) and 
+    (pixel[2]>G_low and pixel[2]<G_high)):
+        return True    
     else:
         return False
 
@@ -105,12 +124,12 @@ def followHorizonRight(edges,p0):
             x += 1                  
         else:                     # increase step
             y += 1
-            if (edges[y][x] > 0):
+            if (y<edges.shape[0]-1 and edges[y][x] > 0):
                 horizon[y-1] = x
-            elif (edges[y][x-1] > 0):
+            elif (y<edges.shape[0]-1 and edges[y][x-1] > 0):
                 horizon[y-1] = x 
                 x -= 1
-            elif (edges[y][x+1] > 0): 
+            elif (y<edges.shape[0]-1 and edges[y][x+1] > 0): 
                 horizon[y-1] = x
                 x += 1
             else:
@@ -140,7 +159,10 @@ def snakeHorizon(img):
     # edge detection
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     cl = clahe.apply(gray)
-    edges = cv2.Canny(cl,15,80)
+    if simulation:
+        edges = cv2.Canny(cl,100,150)
+    else:
+        edges = cv2.Canny(cl,15,80)
     cv2.imshow('edges',edges)
     
     x = 0
@@ -260,19 +282,19 @@ for i in range(img.shape[0]):
 
     value = int(obstacle[i])
     if value >= 0:
-        for x in range(value, value+3):
-            img_w_horizon[i][x][0] = 0
-            img_w_horizon[i][x][1] = 0
-            img_w_horizon[i][x][2] = 255
-    img_w_horizon[i][int(best_horizon[i])][0] = 0
-    img_w_horizon[i][int(best_horizon[i])][1] = 255
-    img_w_horizon[i][int(best_horizon[i])][2] = 0
+        img_w_horizon[i][value][0] = 0
+        img_w_horizon[i][value][1] = 0
+        img_w_horizon[i][value][2] = 255
+    if (best_horizon[i]>=0 and best_horizon[i]<img_w_horizon.shape[1]):
+        img_w_horizon[i][int(best_horizon[i])][0] = 0
+        img_w_horizon[i][int(best_horizon[i])][1] = 255
+        img_w_horizon[i][int(best_horizon[i])][2] = 0
     img_w_track[i][int(horizon[i])][0] = 0
     img_w_track[i][int(horizon[i])][1] = 0
     img_w_track[i][int(horizon[i])][2] = 255
 
 
-cv2.imshow('track',img_w_track)
+#cv2.imshow('track',img_w_track)
 cv2.imshow('horizon',img_w_horizon)
 
 cv2.waitKey(0)
