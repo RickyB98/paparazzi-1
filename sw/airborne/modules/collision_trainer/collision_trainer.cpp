@@ -56,14 +56,23 @@ void InitGazebo()
 {
 }
 
+bool runOnce = false;
+
 void LoopGazebo()
 {
+
   cs = std::static_pointer_cast<gazebo::sensors::ContactSensor>(mgr->GetSensor("contactsensor"));
 
   gazebo::msgs::Contacts contacts = cs->Contacts();
 
   gazebo::physics::WorldPtr world = gazebo::physics::get_world(cs->WorldName());
+  if (!runOnce) {
+    runOnce = false;
+    
+  }
+
   const ignition::math::Pose3d pose = world->ModelByName("bebop")->WorldPose();
+
 
   distance += sqrt(pow((float)(pose.Pos().X()) - prevX, 2) + pow((float)(pose.Pos().Y()) - prevY, 2));
 

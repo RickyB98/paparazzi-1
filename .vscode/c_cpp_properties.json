@@ -22,7 +22,8 @@
                 "/usr/include/ignition/msgs1/",
                 "/usr/include/ignition/transport4/",
                 "/usr/include/x86_64-linux-gnu/",
-                "/usr/include/x86_64-linux-gnu/c++/7/"
+                "/usr/include/x86_64-linux-gnu/c++/7/",
+                "${workspaceFolder}/lib/libtorch/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",

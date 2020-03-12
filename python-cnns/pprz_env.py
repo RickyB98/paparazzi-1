@@ -13,6 +13,7 @@ from torch.autograd import Variable
 
 import image_preprocessing
 
+
 class Status:
     def __init__(self):
         self.distance = 0
@@ -42,6 +43,7 @@ class PaparazziGym:
         self.speeds = [.5, 1., 1.5]
         self.headings = [-60., 0., 60.]
         self.cap = cv2.VideoCapture('/home/parallels/paparazzi-tudelft/sw/tools/rtp_viewer/rtp_5000.sdp')
+
 
         self.status = Status()
 
@@ -106,7 +108,7 @@ class PaparazziGym:
 
         # read picture
         next_state = self.getSnapshot()
-        
+
         # read collision
         newColl = (self.status.collisions - collisions)
         # give reward
