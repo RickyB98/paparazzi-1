@@ -31,5 +31,16 @@ extern void competition_loop();
 extern void competition_event();
 extern void competition_datalink();
 
+void setHeadingRate(float headingRate);
+void setHeading(float heading);
+void setSpeed(float speed);
+
+struct image_t * pic_broadcast_func(struct image_t *img);
+
+extern void ai_init();
+extern void ai_loop();
+
+struct image_t * parse_image(struct image_t *img);
+
 #endif
 

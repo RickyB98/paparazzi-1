@@ -25,9 +25,8 @@
                 "/usr/include/x86_64-linux-gnu/",
                 "/usr/include/x86_64-linux-gnu/c++/7/",
                 "${workspaceFolder}/lib/libtorch/include/",
-                "${workspaceFolder}/sw/ext/opencv_bebop/opencv/modules/imgproc/include/",
-                "${workspaceFolder}/sw/ext/opencv_bebop/opencv/modules/core/include/",
-                "${workspaceFolder}/sw/ext/opencv_bebop/opencv/modules/highgui/include/"
+                "${workspaceFolder}/sw/ext/opencv_bebop/opencv/include",
+                "${workspaceFolder}/sw/ext/opencv_bebop/install_pc/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",
