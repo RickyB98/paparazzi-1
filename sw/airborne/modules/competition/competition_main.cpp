@@ -14,6 +14,8 @@
 
 CNN* cnn;
 
+#define TRAINING
+
 void AiInit()
 {
 	cnn = new CNN();
@@ -34,17 +36,7 @@ void AiLoop()
 	uint16_t * curr = current;
 	if (current == nullptr)
 		return;
-
-	std::vector<float> grayScale = std::vector<float>(520 * 240);
-
-	for (int i = 0; i < 520 * 240; ++i) {
-		grayScale[i] = (float) curr[i * 4] / 256;
-		if (i < 10) {
-			std::cout << grayScale[i] << std::endl;
-		}
-	}
-	std::cout << "end" << std::endl;
-
+	
 	cv::Mat M(240, 520, CV_8UC2, curr); // original
 
   // convert UYVY in paparazzi to YUV in opencv
@@ -57,8 +49,14 @@ void AiLoop()
 
 	resize(floatArr, floatArr, cv::Size(64, 64));
 
-	cv::imwrite("cnn.jpg", floatArr);
-	float* out = cnn->run(reinterpret_cast<float*>(floatArr.data));
+	//cv::imwrite("cnn.jpg", floatArr);
+
+	float* data = reinterpret_cast<float*>(floatArr.data);
+	for (int i = 0; i < 4096; ++i) {
+		data[i] /= 256.;
+	}
+
+	float* out = cnn->run(data);
 
 	float max = out[0];
 	int action = 0;
@@ -122,7 +120,9 @@ extern "C"
 
 	void competition_init()
 	{
+		#ifndef TRAINING
 		cv_add_to_device(&COMPETITION_CAMERA_FRONT, parse_image, 10);
+		#endif
 	}
 
 	void competition_loop()
@@ -153,17 +153,22 @@ extern "C"
 
 	struct image_t * parse_image(struct image_t* img)
 	{
-		fprintf(stderr, "type: %d\n", img->type);
+		#ifndef TRAINING
 		ParseImage((uint16_t*) (img->buf));
+		#endif
 	}
 
 	void ai_init()
 	{
+		#ifndef TRAINING
 		AiInit();
+		#endif
 	}
 
 	void ai_loop()
 	{
+		#ifndef TRAINING
 		AiLoop();
+		#endif
 	}
 }
