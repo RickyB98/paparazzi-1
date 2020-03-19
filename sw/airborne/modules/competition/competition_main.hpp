@@ -31,14 +31,5 @@ extern void competition_loop();
 extern void competition_event();
 extern void competition_datalink();
 
-class Competition {
-public:
-
-private:
-
-
-}
-
-
 #endif
 
