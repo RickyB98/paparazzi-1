@@ -12,7 +12,6 @@ class PreprocessImage:
     def __init__(self, height = 64, width = 64, grayscale = True):
         self.img_size = (height, width)
         self.grayscale = grayscale
-
     def debug_show(self, img):
         cv2.imshow('frame', img)
         #while not cv2.waitKey(1) or not 0xFF == ord('q'):

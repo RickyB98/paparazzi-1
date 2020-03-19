@@ -94,7 +94,14 @@
         "typeinfo": "cpp",
         "datalink.h": "c",
         "extra_pprz_dl.h": "c",
-        "pprz_dl.h": "c"
+        "pprz_dl.h": "c",
+        "bitset": "cpp",
+        "forward_list": "cpp",
+        "valarray": "cpp",
+        "variant": "cpp",
+        "tensor": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
