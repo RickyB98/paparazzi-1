@@ -338,10 +338,10 @@ static void init_gazebo(void)
   sdf::addURIPath("model://", gazebodir + "models/");
   sdf::addURIPath("world://", gazebodir + "world/");
 
-  cout << "Add TU Delft paths: " << pprz_home + "/sw/ext/tudelft_gazebo_models/" << endl;
-  gazebo::common::SystemPaths::Instance()->AddModelPaths(pprz_home + "/sw/ext/tudelft_gazebo_models/models/");
-  sdf::addURIPath("model://", pprz_home + "/sw/ext/tudelft_gazebo_models/models/");
-  sdf::addURIPath("world://", pprz_home + "/sw/ext/tudelft_gazebo_models/world/");
+  cout << "Add TU Delft paths: " << pprz_home + "/sw/ext/competition_models/" << endl;
+  gazebo::common::SystemPaths::Instance()->AddModelPaths(pprz_home + "/sw/ext/competition_models/models/");
+  sdf::addURIPath("model://", pprz_home + "/sw/ext/competition_models/models/");
+  sdf::addURIPath("world://", pprz_home + "/sw/ext/competition_models/world/");
 
   // get vehicles
   string vehicle_uri = "model://" + string(NPS_GAZEBO_AC_NAME) + "/" + string(NPS_GAZEBO_AC_NAME) + ".sdf";
@@ -393,16 +393,19 @@ static void init_gazebo(void)
 
   // get world
   string world_uri = "world://" + string(NPS_GAZEBO_WORLD);
+  string world_uri1 = "world://" + string("cyberzoo_orange_poles_light.world");
   string world_filename = sdf::findFile(world_uri, false);
+  string world_filename1 = sdf::findFile(world_uri1, false);
+  cout<<world_filename<<endl;
   if (world_filename.empty()) {
     cout << "ERROR, could not find world " + world_uri << endl;
     std::exit(-1);
   }
-  cout << "Load world: " << world_filename << endl;
+  cout << "Load world: " << world_filename1 << endl;
   sdf::SDFPtr world_sdf(new sdf::SDF());
   sdf::init(world_sdf);
-  if (!sdf::readFile(world_filename, world_sdf)) {
-    cout << "ERROR, could not read world " + world_filename << endl;
+  if (!sdf::readFile(world_filename1, world_sdf)) {
+    cout << "ERROR, could not read world " + world_filename1 << endl;
     std::exit(-1);
   }
 
