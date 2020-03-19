@@ -4,9 +4,11 @@
 
 #include "modules/computer_vision/lib/vision/image.h"
 
+//#include <opencv/cv.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/photo/photo.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "cnn.hpp"
 
@@ -17,13 +19,19 @@ void AiInit()
 	cnn = new CNN();
 }
 
-uint8_t * current = nullptr;
+uint16_t * current = nullptr;
 
-using namespace cv;
+std::vector<float> speeds = {.5, 1., 1.5};
+std::vector<float> headingRates = {-60., 0., 60.};
+
+float _headingRate = 0;
+float _speed = 0;
+float _heading = 0;
+
 void AiLoop()
 {
 
-	uint8_t * curr = current;
+	uint16_t * curr = current;
 	if (current == nullptr)
 		return;
 
@@ -37,25 +45,44 @@ void AiLoop()
 	}
 	std::cout << "end" << std::endl;
 
-	Mat M(240, 520, CV_BGR2GRAY, curr);
-	resize(M, M, Size(64, 64));
+	cv::Mat M(240, 520, CV_8UC2, curr); // original
 
-	cvSave("cnn.jpg", M.data);
-
-
+  // convert UYVY in paparazzi to YUV in opencv
+  //cvtColor(M, M, CV_YUV2RGB_Y422);
+	//cvtColor(M, M, CV_RGB2GRAY);
+	cvtColor(M, M, CV_YUV2GRAY_Y422);
 	
+	cv::Mat floatArr;
+	M.convertTo(floatArr, CV_32F);
 
+	resize(floatArr, floatArr, cv::Size(64, 64));
 
+	cv::imwrite("cnn.jpg", floatArr);
+	float* out = cnn->run(reinterpret_cast<float*>(floatArr.data));
+
+	float max = out[0];
+	int action = 0;
+	for (int i = 1; i < 9; ++i) {
+		if (out[i] > max) {
+			max = out[i];
+			action = i;
+		}
+	}
+	
+	int speedIdx = action % 3;
+	int headingRateIdx = action / 3;
+
+	_speed = speeds[speedIdx];
+	_headingRate = headingRates[headingRateIdx];
 }
 
-void ParseImage(uint8_t* img)
+void ParseImage(uint16_t* img)
 {
 	current = img;
 }
 
 extern "C"
 {
-
 #include "modules/competition/competition_main.h"
 
 #include "modules/orange_avoider/orange_avoider_guided.h"
@@ -73,10 +100,6 @@ extern "C"
 
 #define HEADING_M 0
 #define HEADING_RATE_M 1
-
-	float _headingRate = 0;
-	float _speed = 0;
-	float _heading = 0;
 
 	int mode = HEADING_M;
 
@@ -130,7 +153,8 @@ extern "C"
 
 	struct image_t * parse_image(struct image_t* img)
 	{
-		ParseImage((uint8_t*) (img->buf));
+		fprintf(stderr, "type: %d\n", img->type);
+		ParseImage((uint16_t*) (img->buf));
 	}
 
 	void ai_init()

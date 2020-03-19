@@ -24,7 +24,6 @@
                 "/usr/include/ignition/transport4/",
                 "/usr/include/x86_64-linux-gnu/",
                 "/usr/include/x86_64-linux-gnu/c++/7/",
-                "${workspaceFolder}/lib/libtorch/include/",
                 "${workspaceFolder}/sw/ext/opencv_bebop/opencv/include",
                 "${workspaceFolder}/sw/ext/opencv_bebop/install_arm/include/"
             ],
