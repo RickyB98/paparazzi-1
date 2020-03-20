@@ -14,7 +14,7 @@ public:
     int64_t *shape;
     const Ort::MemoryInfo memory_info;
     const std::vector<const char *> input_node_names = {"input"};
-    const std::vector<const char*> output_node_names = {"output"};
+    const std::vector<const char *> output_node_names = {"output"};
 
     CNN() : env(Ort::Env(ORT_LOGGING_LEVEL_WARNING, "test")),
             memory_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)),

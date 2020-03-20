@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include <memory>
 
@@ -14,7 +15,7 @@
 
 CNN* cnn;
 
-#define TRAINING
+//#define TRAINING
 
 void AiInit()
 {
@@ -33,27 +34,32 @@ float _heading = 0;
 void AiLoop()
 {
 
-	uint16_t * curr = current;
 	if (current == nullptr)
 		return;
+
+	uint8_t * curr = (uint8_t*) current;
 	
-	cv::Mat M(240, 520, CV_8UC2, curr); // original
+	cv::Mat M(520, 240, CV_8UC2, curr); // original
+	
+	//cvtColor(M, M, CV_YUV2GRAY_Y422);
+	//cv::imwrite("cnn.jpg", M);
+
+	resize(M, M, cv::Size(64, 64), CV_INTER_CUBIC);
+	cvtColor(M, M, CV_YUV2GRAY_UYVY);
 
   // convert UYVY in paparazzi to YUV in opencv
   //cvtColor(M, M, CV_YUV2RGB_Y422);
 	//cvtColor(M, M, CV_RGB2GRAY);
-	cvtColor(M, M, CV_YUV2GRAY_Y422);
+
+	//cv::imwrite("cnn.png", M);
 	
 	cv::Mat floatArr;
 	M.convertTo(floatArr, CV_32F);
 
-	resize(floatArr, floatArr, cv::Size(64, 64));
-
-	//cv::imwrite("cnn.jpg", floatArr);
-
 	float* data = reinterpret_cast<float*>(floatArr.data);
+
 	for (int i = 0; i < 4096; ++i) {
-		data[i] /= 256.;
+		data[i] /= 255.;
 	}
 
 	float* out = cnn->run(data);
@@ -74,8 +80,9 @@ void AiLoop()
 	_headingRate = headingRates[headingRateIdx];
 }
 
-void ParseImage(uint16_t* img)
+void ParseImage(uint16_t * img)
 {
+	free(current);
 	current = img;
 }
 
@@ -121,7 +128,7 @@ extern "C"
 	void competition_init()
 	{
 		#ifndef TRAINING
-		cv_add_to_device(&COMPETITION_CAMERA_FRONT, parse_image, 10);
+		cv_add_to_device(&VIDEO_CAPTURE_CAMERA, parse_image, 10);
 		#endif
 	}
 
@@ -154,8 +161,11 @@ extern "C"
 	struct image_t * parse_image(struct image_t* img)
 	{
 		#ifndef TRAINING
-		ParseImage((uint16_t*) (img->buf));
+		uint16_t * copy = (uint16_t*) malloc(img->buf_size);
+		memcpy(copy, (uint16_t*) (img->buf), img->buf_size);
+		ParseImage(copy);
 		#endif
+		return NULL;
 	}
 
 	void ai_init()

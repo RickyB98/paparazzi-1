@@ -338,10 +338,10 @@ static void init_gazebo(void)
   sdf::addURIPath("model://", gazebodir + "models/");
   sdf::addURIPath("world://", gazebodir + "world/");
 
-  cout << "Add TU Delft paths: " << pprz_home + "/sw/ext/competition_models/" << endl;
-  gazebo::common::SystemPaths::Instance()->AddModelPaths(pprz_home + "/sw/ext/competition_models/models/");
-  sdf::addURIPath("model://", pprz_home + "/sw/ext/competition_models/models/");
-  sdf::addURIPath("world://", pprz_home + "/sw/ext/competition_models/world/");
+  cout << "Add TU Delft paths: " << pprz_home + "/sw/ext/tudelft_gazebo_models/" << endl;
+  gazebo::common::SystemPaths::Instance()->AddModelPaths(pprz_home + "/sw/ext/tudelft_gazebo_models/models/");
+  sdf::addURIPath("model://", pprz_home + "/sw/ext/tudelft_gazebo_models/models/");
+  sdf::addURIPath("world://", pprz_home + "/sw/ext/tudelft_gazebo_models/world/");
 
   // get vehicles
   string vehicle_uri = "model://" + string(NPS_GAZEBO_AC_NAME) + "/" + string(NPS_GAZEBO_AC_NAME) + ".sdf";
