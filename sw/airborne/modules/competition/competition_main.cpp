@@ -4,9 +4,9 @@
 
 #include "modules/computer_vision/lib/vision/image.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/photo/photo.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/core/core.hpp>
+//#include <opencv2/photo/photo.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
 
 #include "cnn.hpp"
 
@@ -56,9 +56,8 @@ void ParseImage(uint8_t* img)
 extern "C"
 {
 
-#include "modules/competition/competition_main.h"
+#include "competition_main.hpp"
 
-#include "modules/orange_avoider/orange_avoider_guided.h"
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "generated/airframe.h"
 #include "state.h"
@@ -67,9 +66,6 @@ extern "C"
 #include <stdio.h>
 #include "math.h"
 #include <time.h>
-
-#define ORANGE_AVOIDER_VERBOSE TRUE
-
 
 #define HEADING_M 0
 #define HEADING_RATE_M 1
