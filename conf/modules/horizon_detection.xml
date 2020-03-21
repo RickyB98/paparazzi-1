@@ -10,9 +10,9 @@
     <init fun="horizon_detection_init()" />
     <periodic fun="horizon_detection_loop()" freq="10"/>
     <makefile target="nps">
-        <file name="horizon_detection.c" />
         <flag name="CXXFLAGS" value="std=c++17"/>
         <file name="horizon_detection_cxx.cpp" />
+        <file name="horizon_detection.cpp" />
         <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
         <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib" />
         <flag name="LDFLAGS" value="lopencv_world" />

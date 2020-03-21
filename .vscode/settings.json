@@ -10,6 +10,8 @@
     },
     "files.associations": {
         "opticflow.hpp": "c",
-        "competition_main.hpp": "c"
+        "competition_main.hpp": "c",
+        "horizon_detection_cxx.hpp": "c",
+        "horizon_detection.h": "c"
     },
 }

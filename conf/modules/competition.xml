@@ -10,9 +10,9 @@
   <init fun="competition_init()"/>
   <periodic fun="competition_loop()" freq="10"/>
   <makefile target="nps">
-    <file name="competition_main.c"/>
-    <file name="competition_main_cxx.cpp"/>
     <flag name="CXXFLAGS" value="std=c++17"/>
+    <file name="competition_main_cxx.cpp"/>
+    <file name="competition_main.cpp"/>
   </makefile>
 </module>
 
