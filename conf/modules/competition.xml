@@ -5,14 +5,47 @@
     <description>Competition Module Group 3</description>
   </doc>
   <header>
-    <file name="competition_main.hpp"/>
+    <file name="competition_main.hpp" />
   </header>
-  <init fun="competition_init()"/>
-  <periodic fun="competition_loop()" freq="1"></periodic>
-  <event fun="competition_event()"/>
-  <datalink message="datalink" fun="competition_datalink()"></datalink>
+  <init fun="competition_init()" />
+  <init fun="ai_init()"></init>
+  <periodic fun="competition_loop()" freq="20"></periodic>
+  <periodic fun="ai_loop()" freq="15"></periodic>
+  <event fun="competition_event()" />
   <makefile>
-    <file name="competition_main.cpp"/>
+    <file name="competition_main.cpp" />
+    <file name="horizonDetection.cpp" />
+    <raw>
+      nps.CXXFLAGS += -std=c++17 -I$(shell pwd)/../../sw/include/ -DCOMPETITION_CAMERA_FRONT=front_camera
+      nps.LDFLAGS += -L$(shell pwd)/../../sw/lib/onnx/ -lonnxruntime
+      nps.CXXFLAGS += $(shell pkg-config gazebo --cflags)
+      nps.LDFLAGS  += $(shell pkg-config gazebo --libs)
+      <!-- OpenCV for video debugging -->
+      NPS_DEBUG_VIDEO ?= 0
+      ifeq (,$(findstring $(NPS_DEBUG_VIDEO),0 FALSE))
+        nps.CXXFLAGS += -DNPS_DEBUG_VIDEO
+        nps.CXXFLAGS += $(shell pkg-config opencv)
+        nps.LDFLAGS  += -lopencv_imgproc -lopencv_highgui -lopencv_core
+      endif
+    </raw>
+    <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib" />
+    <flag name="LDFLAGS" value="lopencv_world" />
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib" />
+    <flag name="LDFLAGS" value="llibprotobuf" />
+    <flag name="LDFLAGS" value="lquirc" />
+    <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu" />
+    <flag name="LDFLAGS" value="ljpeg" />
+    <flag name="LDFLAGS" value="lpng" />
+    <flag name="LDFLAGS" value="ltiff" />
+    <flag name="LDFLAGS" value="lgstbase-1.0" />
+    <flag name="LDFLAGS" value="lgstreamer-1.0" />
+    <flag name="LDFLAGS" value="lgobject-2.0" />
+    <flag name="LDFLAGS" value="lglib-2.0" />
+    <flag name="LDFLAGS" value="lz" />
+    <flag name="LDFLAGS" value="ldl" />
+    <flag name="LDFLAGS" value="lm" />
+    <flag name="LDFLAGS" value="lpthread" />
+    <flag name="LDFLAGS" value="lrt" />
   </makefile>
 </module>
-

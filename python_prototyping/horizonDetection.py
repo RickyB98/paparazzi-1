@@ -6,8 +6,9 @@
 
 import os
 import sys
-from cv2 import cv2
+import cv2
 import numpy as np 
+
 import matplotlib.pyplot as plt 
 import random
 
@@ -36,7 +37,7 @@ else:
 # open image
 #img_path = 'datasets/cyberzoo_poles/20190121-135009/'
 #img_nmb = 80211420
-img_path = 'datasets/cyberzoo_poles_panels/20190121-140205/'
+img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20190121-140205/'
 img_nmb = 93349216 #96849201  
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
@@ -180,7 +181,7 @@ def snakeHorizon(img):
             # other idea: do snake horizon > ransacHorizon > second snake horizon only keeping lines close to the ransac Horizon
             y_min = followHorizonLeft(edges, [x,y], 0)  
             y_max = followHorizonRight(edges, [x,y])
-            # could go right first and use distance to decide if we want to overwrite when moving left
+            # could go right first and use distance to decide char *imgif we want to overwrite when moving left
             y = y_max + 1
             x = 0
             # if the segment is too short, scrap it
@@ -299,3 +300,6 @@ cv2.imshow('horizon',img_w_horizon)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
+# %%
