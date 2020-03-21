@@ -198,3 +198,7 @@ tests/results/*
 # Datasets
 datasets/*
 sw/ext/pprzlink-bkp/
+
+# cmake
+cmake-build-debug/
+CMakeLists.txt
