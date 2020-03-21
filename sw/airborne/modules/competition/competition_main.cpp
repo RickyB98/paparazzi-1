@@ -1,63 +1,96 @@
-#include "competition_main.hpp"
 #include <iostream>
+#include <fstream>
+
 #include <memory>
 
 #include "modules/computer_vision/lib/vision/image.h"
 
-//#include <opencv2/core/core.hpp>
-//#include <opencv2/photo/photo.hpp>
-//#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv/cv.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/photo/photo.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "cnn.hpp"
 
 CNN* cnn;
+
+//#define TRAINING
 
 void AiInit()
 {
 	cnn = new CNN();
 }
 
-uint8_t * current = nullptr;
+uint16_t * current = nullptr;
 
-using namespace cv;
+std::vector<float> speeds = {.5, 1., 1.5};
+std::vector<float> headingRates = {-60., 0., 60.};
+
+float _headingRate = 0;
+float _speed = 0;
+float _heading = 0;
+
 void AiLoop()
 {
 
-	uint8_t * curr = current;
 	if (current == nullptr)
 		return;
 
-	std::vector<float> grayScale = std::vector<float>(520 * 240);
+	uint8_t * curr = (uint8_t*) current;
+	
+	cv::Mat M(520, 240, CV_8UC2, curr); // original
+	
+	//cvtColor(M, M, CV_YUV2GRAY_Y422);
+	//cv::imwrite("cnn.jpg", M);
 
-	for (int i = 0; i < 520 * 240; ++i) {
-		grayScale[i] = (float) curr[i * 4] / 256;
-		if (i < 10) {
-			std::cout << grayScale[i] << std::endl;
+	resize(M, M, cv::Size(64, 64), CV_INTER_CUBIC);
+	cvtColor(M, M, CV_YUV2GRAY_UYVY);
+
+  // convert UYVY in paparazzi to YUV in opencv
+  //cvtColor(M, M, CV_YUV2RGB_Y422);
+	//cvtColor(M, M, CV_RGB2GRAY);
+
+	//cv::imwrite("cnn.png", M);
+	
+	cv::Mat floatArr;
+	M.convertTo(floatArr, CV_32F);
+
+	float* data = reinterpret_cast<float*>(floatArr.data);
+
+	for (int i = 0; i < 4096; ++i) {
+		data[i] /= 255.;
+	}
+
+	float* out = cnn->run(data);
+
+	float max = out[0];
+	int action = 0;
+	for (int i = 1; i < 9; ++i) {
+		if (out[i] > max) {
+			max = out[i];
+			action = i;
 		}
 	}
-	std::cout << "end" << std::endl;
-
-	Mat M(240, 520, CV_BGR2GRAY, curr);
-	resize(M, M, Size(64, 64));
-
-	cvSave("cnn.jpg", M.data);
-
-
 	
+	int speedIdx = action % 3;
+	int headingRateIdx = action / 3;
 
-
+	_speed = speeds[speedIdx];
+	_headingRate = headingRates[headingRateIdx];
 }
 
-void ParseImage(uint8_t* img)
+void ParseImage(uint16_t * img)
 {
+	free(current);
 	current = img;
 }
 
 extern "C"
 {
+#include "modules/competition/competition_main.h"
 
-#include "competition_main.hpp"
-
+#include "modules/orange_avoider/orange_avoider_guided.h"
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "generated/airframe.h"
 #include "state.h"
@@ -67,12 +100,11 @@ extern "C"
 #include "math.h"
 #include <time.h>
 
+#define ORANGE_AVOIDER_VERBOSE TRUE
+
+
 #define HEADING_M 0
 #define HEADING_RATE_M 1
-
-	float _headingRate = 0;
-	float _speed = 0;
-	float _heading = 0;
 
 	int mode = HEADING_M;
 
@@ -95,7 +127,9 @@ extern "C"
 
 	void competition_init()
 	{
-		cv_add_to_device(&COMPETITION_CAMERA_FRONT, parse_image, 10);
+		#ifndef TRAINING
+		cv_add_to_device(&VIDEO_CAPTURE_CAMERA, parse_image, 10);
+		#endif
 	}
 
 	void competition_loop()
@@ -126,16 +160,25 @@ extern "C"
 
 	struct image_t * parse_image(struct image_t* img)
 	{
-		ParseImage((uint8_t*) (img->buf));
+		#ifndef TRAINING
+		uint16_t * copy = (uint16_t*) malloc(img->buf_size);
+		memcpy(copy, (uint16_t*) (img->buf), img->buf_size);
+		ParseImage(copy);
+		#endif
+		return NULL;
 	}
 
 	void ai_init()
 	{
+		#ifndef TRAINING
 		AiInit();
+		#endif
 	}
 
 	void ai_loop()
 	{
+		#ifndef TRAINING
 		AiLoop();
+		#endif
 	}
 }
