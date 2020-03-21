@@ -1,7 +1,7 @@
 <!DOCTYPE airframe SYSTEM "../airframe.dtd">
 
 <airframe name="competition_group_3_airframe">
-  <description>Vision Course TUDelft V2019
+  <description>Competition Group 3 Airframe
   </description>
 
   <firmware name="rotorcraft">
@@ -101,7 +101,10 @@
       <define name="FLOOR_VISUAL_DETECTION_ID" value="COLOR_OBJECT_DETECTION2_ID"/>
     </module>
     <module name="competition">
-   	
+    </module>
+    <module name="opticflow">
+    </module>
+    <module name="horizon_detection">
     </module>
     
     <module name="video_rtp_stream">

@@ -8,10 +8,11 @@
     <file name="competition_main.h"/>
   </header>
   <init fun="competition_init()"/>
-  <periodic fun="competition_loop()" freq="1"></periodic>
-  <event fun="competition_event()"/>
-  <makefile>
+  <periodic fun="competition_loop()" freq="10"/>
+  <makefile target="nps">
     <file name="competition_main.c"/>
+    <file name="competition_main_cxx.cpp"/>
+    <flag name="CXXFLAGS" value="std=c++17"/>
   </makefile>
 </module>
 
