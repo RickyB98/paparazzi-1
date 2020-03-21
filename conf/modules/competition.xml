@@ -5,13 +5,13 @@
     <description>Competition Module Group 3</description>
   </doc>
   <header>
-    <file name="competition_main.hpp" />
+    <file name="competition_main.h"/>
   </header>
-  <init fun="competition_init()" />
+  <init fun="competition_init()"/>
   <init fun="ai_init()"></init>
   <periodic fun="competition_loop()" freq="20"></periodic>
   <periodic fun="ai_loop()" freq="15"></periodic>
-  <event fun="competition_event()" />
+  <event fun="competition_event()"/>
   <makefile>
     <file name="competition_main.cpp" />
     <file name="horizonDetection.cpp" />
@@ -20,6 +20,7 @@
       nps.LDFLAGS += -L$(shell pwd)/../../sw/lib/onnx/ -lonnxruntime
       nps.CXXFLAGS += $(shell pkg-config gazebo --cflags)
       nps.LDFLAGS  += $(shell pkg-config gazebo --libs)
+
       <!-- OpenCV for video debugging -->
       NPS_DEBUG_VIDEO ?= 0
       ifeq (,$(findstring $(NPS_DEBUG_VIDEO),0 FALSE))
@@ -49,3 +50,4 @@
     <flag name="LDFLAGS" value="lrt" />
   </makefile>
 </module>
+
