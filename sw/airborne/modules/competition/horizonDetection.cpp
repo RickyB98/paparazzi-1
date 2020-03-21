@@ -24,6 +24,7 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon);
 int followHorizonLeft(Mat *edge_image, Dot *p, int y_lim, int *horizon);
 int isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M);
 Dot findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot p);
+void ransacHorizon(int *horizon, int *best_horizon);
 
 #include <opencv_contour.h>
 #include <opencv2/core/core.hpp>
