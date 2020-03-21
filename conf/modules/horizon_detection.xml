@@ -13,6 +13,7 @@
         <flag name="CXXFLAGS" value="std=c++17"/>
         <file name="horizon_detection_cxx.cpp" />
         <file name="horizon_detection.cpp" />
+        <flag name="CXXFLAGS" value ="DCOMPETITION_CAMERA_FRONT=front_camera"/>
         <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
         <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib" />
         <flag name="LDFLAGS" value="lopencv_world" />
@@ -23,10 +24,6 @@
         <flag name="LDFLAGS" value="ljpeg" />
         <flag name="LDFLAGS" value="lpng" />
         <flag name="LDFLAGS" value="ltiff" />
-        <flag name="LDFLAGS" value="lgstbase-1.0" />
-        <flag name="LDFLAGS" value="lgstreamer-1.0" />
-        <flag name="LDFLAGS" value="lgobject-2.0" />
-        <flag name="LDFLAGS" value="lglib-2.0" />
         <flag name="LDFLAGS" value="lz" />
         <flag name="LDFLAGS" value="ldl" />
         <flag name="LDFLAGS" value="lm" />

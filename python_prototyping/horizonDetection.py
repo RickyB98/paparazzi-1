@@ -41,8 +41,8 @@ img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20
 img_nmb = 93349216 #96849201  
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
-img_path = 'datasets/sim_poles_panels_mats/20190121-161931/'
-img_nmb = 40800000
+#img_path = 'datasets/sim_poles_panels_mats/20190121-161931/'
+##img_nmb = 40800000
 
 img_name = img_path + str(img_nmb) + ".jpg"
 

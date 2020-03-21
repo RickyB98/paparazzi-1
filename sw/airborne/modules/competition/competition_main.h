@@ -3,7 +3,6 @@
 
 extern void competition_init();
 extern void competition_loop();
-extern void competition_event();
-// extern void competition_datalink();
 
 #endif //PAPARAZZI_COMPETITION_MAIN_H
+

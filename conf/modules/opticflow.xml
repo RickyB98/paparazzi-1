@@ -23,10 +23,6 @@
         <flag name="LDFLAGS" value="ljpeg" />
         <flag name="LDFLAGS" value="lpng" />
         <flag name="LDFLAGS" value="ltiff" />
-        <flag name="LDFLAGS" value="lgstbase-1.0" />
-        <flag name="LDFLAGS" value="lgstreamer-1.0" />
-        <flag name="LDFLAGS" value="lgobject-2.0" />
-        <flag name="LDFLAGS" value="lglib-2.0" />
         <flag name="LDFLAGS" value="lz" />
         <flag name="LDFLAGS" value="ldl" />
         <flag name="LDFLAGS" value="lm" />

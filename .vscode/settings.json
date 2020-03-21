@@ -9,4 +9,7 @@
         "editor.tabSize": 4,
     },
     "python.pythonPath": "/home/lunajuliao/anaconda3/envs/paparazzi/bin/python",
+    "files.associations": {
+        "tensor": "cpp"
+    },
 }
