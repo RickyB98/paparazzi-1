@@ -37,8 +37,8 @@ else:
 # open image
 #img_path = 'datasets/cyberzoo_poles/20190121-135009/'
 #img_nmb = 80211420
-img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20190121-140205/'
-img_nmb = 93349216 #96849201  
+#img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20190121-140205/'
+#img_nmb = 93349216 #96849201  
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
 #img_path = 'datasets/sim_poles_panels_mats/20190121-161931/'
@@ -48,6 +48,7 @@ img_name = img_path + str(img_nmb) + ".jpg"
 
 
 if not os.path.isfile(img_name):
+    print("couldn't find image")
     sys.exit()
 
 img = cv2.imread(img_name)
@@ -191,16 +192,52 @@ def snakeHorizon(img):
         #break
     #print("exit while")
 
-def ransacHorizonLine(iterations, threshold, img = None):
-    global horizon
+def ransacHorizonLine(horizon, iterations, threshold, img = None):
     elements = horizon.shape[0]             # pylint: disable=E1136     # pylint/issues/3139
+    # find non-zero range
+    first = 0
+    last = 0
+    for i in range(elements):
+        if horizon[i] != 0:
+            first = i
+            break
+    for i in range(first, elements):
+        if horizon[i] != 0:
+            last = i
+  
+    
     best_error = threshold * (elements+1)
+    best_quality = 0
+    best_m = 0
+    best_b = 0
     error = np.zeros(iterations)
+    quality = np.zeros(iterations)
     m = np.zeros(iterations)
     b = np.zeros(iterations)
+    timeout_counter = 0
     for i in range(iterations):
-        [s1,s2] = random.sample(range(elements),2)
-        if (horizon[s2] == 0 and horizon[s1] == 0):
+        timeout = False
+        while True:
+            s1 = random.randint(first,last)
+            if horizon[s1] != 0:
+                break
+            elif timeout_counter >= 10:
+                timeout = True
+                break
+            else:
+                timeout_counter = timeout_counter + 1
+        
+        while True:
+            s2 = random.randint(first,last)
+            if (s2 != s1 and horizon[s2] != 0):
+                break
+            elif timeout_counter >= 10:
+                timeout = True
+                break
+            else:
+                timeout_counter = timeout_counter + 1
+
+        if timeout:
             continue
 
         m[i] = (horizon[s2]-horizon[s1])/(s2-s1)
@@ -217,6 +254,7 @@ def ransacHorizonLine(iterations, threshold, img = None):
             delta = np.abs(horizon[j] - m[i]*j - b[i])
             if delta < threshold:
                 error[i] = error[i] + delta
+                quality[i] = quality[i] + 1
             else:
                 error[i] = error[i] + threshold
         
@@ -224,20 +262,51 @@ def ransacHorizonLine(iterations, threshold, img = None):
             best_error = error[i]
             best_m = m[i]
             best_b = b[i]
+            best_quality = quality[i]
     
     best_horizon = np.zeros(elements)
     for j in range(elements):
         x = int(np.round(best_m*j + best_b))
         best_horizon[j] = x
-        if img is not None:
+        if ((img is not None) and (x>=0) and (x<img.shape[1])):
             img[j][x][0] = 0
             img[j][x][1] = 255
             img[j][x][2] = 0
+    
+    # check for a second horizon
+    
 
     if img is not None:
         cv2.imshow('horizon_lines',img)
     
-    return best_horizon
+    return best_horizon, best_m, best_quality
+
+def removeHorizon(best_horizon, best_m):
+    global horizon, ransac_max_error
+    N = best_horizon.shape[0]
+    pruned_horizon = np.zeros(N)
+    # find the beginning/end of the identified horizon
+    for i in range(N):
+        if best_m > 0:
+            first_point = 0
+            if abs(horizon[i]-best_horizon[i] < ransac_max_error):
+                last_point = i
+
+        else:
+            last_point = N
+            if (abs(horizon[i]-best_horizon[i]) < ransac_max_error):
+                first_point = i
+                break
+    
+    # remove that half from the horizon
+    for i in range(N):
+        if (i>=first_point and i<=last_point):
+            pruned_horizon[i] = 0
+        else:
+            pruned_horizon[i] = horizon[i]
+    
+    return pruned_horizon
+
 
 
 
@@ -260,12 +329,16 @@ eq = cv2.equalizeHist(gray)
 #cv2.imshow('floor',floor)
 snakeHorizon(img)
 img_ransac = cv2.imread(img_name)
-best_horizon = ransacHorizonLine(ransac_iter, ransac_max_error)
+best_horizon, best_m, best_quality = ransacHorizonLine(horizon, ransac_iter, ransac_max_error)
+print('principle horizon quality: ', best_quality)
+pruned_horizon = removeHorizon(best_horizon, best_m)
+sec_horizon, sec_m, sec_quality = ransacHorizonLine(pruned_horizon, ransac_iter, ransac_max_error, img_ransac)
+print('secondary horizon quality: ', sec_quality)
 
 obstacle = np.zeros(horizon.shape)
 for i in range(horizon.shape[0]):       # pylint: disable=E1136     # pylint/issues/3139
     obstacle_threshold = 10
-    if (abs(best_horizon[i]-horizon[i]) > obstacle_threshold):
+    if (abs(best_horizon[i]-horizon[i]) > obstacle_threshold and abs(sec_horizon[i]-horizon[i]) > obstacle_threshold):
         obstacle[i] = horizon[i]
     else:
         obstacle[i] = -1
@@ -290,9 +363,16 @@ for i in range(img.shape[0]):
         img_w_horizon[i][int(best_horizon[i])][0] = 0
         img_w_horizon[i][int(best_horizon[i])][1] = 255
         img_w_horizon[i][int(best_horizon[i])][2] = 0
+    if (sec_horizon[i]>=0 and sec_horizon[i]<img_w_horizon.shape[1]):
+        img_w_horizon[i][int(sec_horizon[i])][0] = 0
+        img_w_horizon[i][int(sec_horizon[i])][1] = 255
+        img_w_horizon[i][int(sec_horizon[i])][2] = 0
+        
     img_w_track[i][int(horizon[i])][0] = 0
     img_w_track[i][int(horizon[i])][1] = 0
     img_w_track[i][int(horizon[i])][2] = 255
+
+
 
 
 #cv2.imshow('track',img_w_track)
