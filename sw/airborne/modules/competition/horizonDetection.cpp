@@ -9,6 +9,9 @@
 using namespace cv;
 using namespace std;
 
+#define RANSAC_ITERATIONS 20
+#define RANSAC_THRESHOLD 5
+
 typedef struct Dot
 {
     float x;
@@ -21,6 +24,7 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon);
 int followHorizonLeft(Mat *edge_image, Dot *p, int y_lim, int *horizon);
 int isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M);
 Dot findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot p);
+void ransacHorizon(int *horizon, int *best_horizon);
 
 #include <opencv_contour.h>
 #include <opencv2/core/core.hpp>
@@ -290,4 +294,53 @@ void horizonDetection(struct image_t *img)
             }
         }
     }
+}
+
+void ransacHorizon(int *horizon, int *best_horizon){
+    int N = length(horizon);
+    int error[RANSAC_ITERATIONS] = {0.0f};
+    float m[RANSAC_ITERATIONS] = {0.0f};
+    float b[RANSAC_ITERATIONS] = {0.0f};
+
+    int best_error = RANSAC_THRESHOLD * (N+1);
+    float best_m = 0;
+    float best_b = 0;
+
+    int i,j;
+    for (i=0; i<RANSAC_ITERATIONS; i++){
+        int s1,s2;
+        s1 = int(round(N*rand()/RAND_MAX));
+        do{
+            s2 = int(round(N*rand()/RAND_MAX));
+        }while(s1==s2);
+
+        if(horizon[s1] && horizon[s2]){
+            continue;
+        }
+
+        m[i] = (horizon[s2]-horizon[s1])/(s2-s1);
+        b[i] = horizon[s1] - m[i]*s1;
+
+        for (j=0; j<N, j++){
+            int dx = abs(horizon[j] - m[i]*j - b[i]);
+
+            if (dx<RANSAC_THRESHOLD){
+                error[i] += dx;
+            }
+            else{
+                error[i] += RANSAC_THRESHOLD;
+            }
+        }
+
+        if (error[i] < best_error){
+            best_error = error[i];
+            best_m = m[i];
+            best_b = b[i];
+        }
+    }
+
+    for (j=0; j++; j<N){
+        best_horizon[j] = int(round(best_m*j + best_b));
+    }
+
 }
