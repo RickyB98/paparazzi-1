@@ -16,7 +16,6 @@ int followHorizonRight(cv::Mat *edge_image, Dot *p, int *horizon);
 int followHorizonLeft(cv::Mat *edge_image, Dot *p, int y_lim, int *horizon);
 bool isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M);
 cv::Mat findHorizonCandidate(struct image_t *img, cv::Mat *edge_image, Dot *p);
-extern void ransacHorizon(int *horizon, int *best_horizon);
 
 void HorizonDetectionInit();
 void HorizonDetectionLoop();
