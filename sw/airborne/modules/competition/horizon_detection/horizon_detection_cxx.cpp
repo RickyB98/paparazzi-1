@@ -13,12 +13,18 @@
 
 #define RANSAC_ITERATIONS 20
 #define RANSAC_THRESHOLD 5
+#define RANSAC_TIMEOUT_LIM 20
 
 using namespace std;
 using namespace cv;
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
+
+typedef struct horizon_line_s {
+    float m, b;
+    int quality;
+} horizon_line_t;
 
 RNG rng(12345);
 
@@ -233,35 +239,59 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
     return y;
 }
 
-void ransacHorizon(int *horizon, int *best_horizon)
+void ransacHorizon(int *horizon, horizon_line_t *best_horizon)
 {
     int N = sizeof(horizon);
-    float error[RANSAC_ITERATIONS] = {0.0f};
+    // find non-zero range
+    int first = 0;
+    int last = 0;
+    int i,j;
+    for (i=0; i<N; i++){
+        if (horizon[i] != 0){
+            first = i;
+            break;
+        }
+    }
+    for (i=first; i<N; i++){
+        if (horizon[i] != 0){
+            last = i;
+        }
+    }
+
+    // initialize ransac horizon variables
+    int quality[RANSAC_ITERATIONS] = {0};
+    int error[RANSAC_ITERATIONS] = {0.0f};
     float m[RANSAC_ITERATIONS] = {0.0f};
     float b[RANSAC_ITERATIONS] = {0.0f};
 
+    int best_quality = 0;
     int best_error = RANSAC_THRESHOLD * (N + 1);
     float best_m = 0;
     float best_b = 0;
 
-    int i, j;
+    uint8_t timeout_counter = 0;
+    bool timeout = false;
+
     for (i = 0; i < RANSAC_ITERATIONS; i++)
     {
+        // pick two different, non-zero points on the horizon
+        timeout = false;
         int s1, s2;
-        s1 = int(round(N * rand() / RAND_MAX));
-        do
-        {
+        do{
+            s1 = int(round(N * rand() / RAND_MAX));
+            timeout_counter++;
+        } while (horizon[s1]==0 && timeout_counter<RANSAC_TIMEOUT_LIM);
+        
+        do{
             s2 = int(round(N * rand() / RAND_MAX));
-        } while (s1 == s2);
+            timeout_counter++
+        } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter<RANSAC_TIMEOUT_LIM);
 
-        if (horizon[s1] && horizon[s2])
-        {
-            continue;
-        }
-
+        // calculate horizon based on s1 and s2
         m[i] = (horizon[s2] - horizon[s1]) / (s2 - s1);
         b[i] = horizon[s1] - m[i] * s1;
 
+        // calculate error and quality
         for (j = 0; j < N; j++)
         {
             int dx = abs(horizon[j] - m[i] * j - b[i]);
@@ -269,6 +299,7 @@ void ransacHorizon(int *horizon, int *best_horizon)
             if (dx < RANSAC_THRESHOLD)
             {
                 error[i] += dx;
+                quality[i]++;
             }
             else
             {
@@ -276,18 +307,18 @@ void ransacHorizon(int *horizon, int *best_horizon)
             }
         }
 
+        // update best horizon
         if (error[i] < best_error)
         {
             best_error = error[i];
             best_m = m[i];
             best_b = b[i];
+            best_quality = quality[i];
         }
     }
-
-    for (j = 0; j < N; j++)
-    {
-        best_horizon[j] = int(round(best_m * j + best_b));
-    }
+    best_horizon->m = best_m;
+    best_horizon->b = best_b;
+    best_horizon->quality = best_quality;
 }
 
 struct image_t * horizonDetection(struct image_t *img)
