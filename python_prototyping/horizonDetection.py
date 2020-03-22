@@ -16,7 +16,7 @@ import random
 ransac_iter = 20            # ransac iterations
 ransac_max_error = 5        # maximum error a point can have in ransac
 obstacle_threshold = 5     # distance from horizon to be considered an obstacle
-simulation = True
+simulation = False
 
 # floor color thresholds
 if simulation:
@@ -37,8 +37,8 @@ else:
 # open image
 #img_path = 'datasets/cyberzoo_poles/20190121-135009/'
 #img_nmb = 80211420
-#img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20190121-140205/'
-#img_nmb = 93349216 #96849201  
+img_path = '/home/lunajuliao/paparazzi-tudelft/datasets/cyberzoo_poles_panels/20190121-140205/'
+img_nmb = 96849201  #93349216 # 
 #img_path = 'datasets/cyberzoo_canvas_approach/20190121-151448/'
 #img_nmb = 54248124
 #img_path = 'datasets/sim_poles_panels_mats/20190121-161931/'
