@@ -8,7 +8,7 @@ extern "C" {
 #include <modules/computer_vision/cv.h>
 
 void opticflow_init() {
-    cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 5);
+    cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 20);
     OpticflowInit();
 }
 

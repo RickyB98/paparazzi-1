@@ -106,7 +106,9 @@
         "image.h": "c",
         "fast_rosten.c": "cpp",
         "lucas_kanade.h": "c",
-        "opticflow.h": "c"
+        "opticflow.h": "c",
+        "linear_flow_fit.h": "c",
+        "pprz_simple_matrix.h": "c"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,

@@ -7,6 +7,7 @@ extern void opticflow_init();
 extern void opticflow_loop();
 
 struct image_t* store_image(struct image_t* img);
+void draw_current_corners(struct image_t* img);
 
 void parse_images();
 
