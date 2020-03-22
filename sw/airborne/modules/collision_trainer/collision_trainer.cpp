@@ -81,10 +81,14 @@ void LoopGazebo()
 
   for (int i = 0; i < contacts.contact_size(); ++i)
   {
+    std::string c1 = contacts.contact(i).collision1();
     std::string c2 = contacts.contact(i).collision2();
     std::string name = c2.substr(0, c2.find("::"));
     if (name.compare("cyberzoo_model") == 0)
       continue;
+    if (name.compare("bebop") == 0)
+      name = c1.substr(0, c1.find("::"));
+      
     ++collisions;
     if (collisions >= 3 || trainingState == REPOSITION)
     {

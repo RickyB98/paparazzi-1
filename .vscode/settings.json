@@ -101,9 +101,14 @@
         "variant": "cpp",
         "tensor": "cpp",
         "cfenv": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "fast_rosten.h": "c",
+        "image.h": "c",
+        "fast_rosten.c": "cpp",
+        "lucas_kanade.h": "c",
+        "opticflow.h": "c"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/home/parallels/anaconda3/envs/ivy/bin/python",
+    "python.pythonPath": "/home/alessandro/anaconda3/envs/paparazzi/bin/python",
 }

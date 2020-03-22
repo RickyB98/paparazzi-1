@@ -84,7 +84,7 @@ struct flow_t *opticFlowLK(struct image_t *new_img, struct image_t *old_img, str
   }
 
   // Allocate some memory for returning the vectors
-  struct flow_t *vectors = malloc(sizeof(struct flow_t) * max_points);
+  struct flow_t *vectors = (struct flow_t*) malloc(sizeof(struct flow_t) * max_points);
 
   // Determine patch sizes and initialize neighborhoods
   uint16_t patch_size = 2 * half_window_size + 1;
@@ -94,8 +94,8 @@ struct flow_t *opticFlowLK(struct image_t *new_img, struct image_t *old_img, str
   uint16_t border_size = padded_patch_size / 2 + 2; // amount of padding added to images
 
   // Allocate memory for image pyramids
-  struct image_t *pyramid_old = malloc(sizeof(struct image_t) * (pyramid_level + 1));
-  struct image_t *pyramid_new = malloc(sizeof(struct image_t) * (pyramid_level + 1));
+  struct image_t *pyramid_old = (struct image_t*) malloc(sizeof(struct image_t) * (pyramid_level + 1));
+  struct image_t *pyramid_new = (struct image_t*) malloc(sizeof(struct image_t) * (pyramid_level + 1));
 
   // Build pyramid levels
   pyramid_build(old_img, pyramid_old, pyramid_level, border_size);
@@ -280,7 +280,7 @@ struct flow_t *opticFlowLK_flat(struct image_t *new_img, struct image_t *old_img
   //     [d] calculate the additional flow step and possibly terminate the iteration
 
   // Allocate some memory for returning the vectors
-  struct flow_t *vectors = malloc(sizeof(struct flow_t) * max_points);
+  struct flow_t *vectors = (struct flow_t*) malloc(sizeof(struct flow_t) * max_points);
   uint16_t new_p = 0;
   uint16_t points_orig = *points_cnt;
   *points_cnt = 0;

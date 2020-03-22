@@ -3,7 +3,7 @@ import os
 import cv2
 import time
 
-os.sys.path.append('/home/parallels/paparazzi-tudelft/python-cnns/pprzlink/lib/v2/python/')
+os.sys.path.append('/home/alessandro/paparazzi-tudelft/python-cnns/pprzlink/lib/v2/python/')
 
 from pprzlink import ivy
 from pprzlink.message import PprzMessage
@@ -42,7 +42,7 @@ class PaparazziGym:
 
         self.speeds = [.5, 1., 1.5]
         self.headings = [-60., 0., 60.]
-        self.cap = cv2.VideoCapture('/home/parallels/paparazzi-tudelft/sw/tools/rtp_viewer/rtp_5000.sdp')
+        self.cap = cv2.VideoCapture('/home/alessandro/paparazzi-tudelft/sw/tools/rtp_viewer/rtp_5000.sdp')
 
 
         self.status = Status()
