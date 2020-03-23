@@ -21,6 +21,7 @@ using namespace cv;
 #define SECONDARY_HORIZON_THRESHOLD 40
 #define OBSTACLE_THRESHOLD 5
 
+bool draw = true;
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
@@ -42,8 +43,26 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon);
 void findObstacles_2H(int *obstacles, int *horizon,horizon_line_t *left_horizon, horizon_line_t *right_horizon);
 void findObstacles_1H(int *obstacles, int *horizon, horizon_line_t *best_horizon);
 void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, int limit_left, int limit_right);
-
+void drawHorizon_2H(struct image_t *img, int *obstacles, horizon_line_t *left_horizon, horizon_line_t *right_Horizon);
+void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_horizon);
+void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right);
 RNG rng(12345);
+
+uint8_t cf_ymin = 0;
+uint8_t cf_ymax = 0;
+uint8_t cf_umin = 0;
+uint8_t cf_umax = 0;
+uint8_t cf_vmin = 0;
+uint8_t cf_vmax = 0;
+
+void horizon_detection_init(){
+    cf_ymin = COMPETITION_CF_YMIN;
+    cf_ymax = COMPETITION_CF_YMAX;
+    cf_umin = COMPETITION_CF_UMIN;
+    cf_umax = COMPETITION_CF_UMAX;
+    cf_vmin = COMPETITION_CF_VMIN;
+    cf_vmax = COMPETITION_CF_VMAX;
+}
 
 Mat image_edges(struct image_t *img)
 {
@@ -275,7 +294,7 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     float best_b = 0;
 
     uint8_t timeout_counter = 0;
-    bool timeout = false;
+    bool timeout;
 
 
     int i,j;
@@ -304,14 +323,15 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
             //cout << "seraquesim nononono" << endl;
              //cout << s2 << endl;
         } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter<RANSAC_TIMEOUT_LIM);
-        
-        
+
+        if (timeout_counter >= RANSAC_TIMEOUT_LIM){continue;}
+
                 //cout << "aaaa" << endl;
          // calculate horizon based on s1 and s2
                 //cout << s1 << " " << s2 << endl;
 
 
-         
+        // why is this necessary? 
         if(s1!=s2){
         m[i] = (horizon[s2] - horizon[s1]) / (s2 - s1);
         b[i] = horizon[s1] - m[i] * s1;
@@ -418,13 +438,60 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
     }
 }
 
+void drawHorizon_2H(struct image_t *img, int *obstacles, horizon_line_t *left_horizon, horizon_line_t *right_horizon){
+    int horizon_intersect = (int) floor((left_horizon->b-right_horizon->b)/(right_horizon->m-left_horizon->m));
+    drawHorizon(img, obstacles, left_horizon, 0, horizon_intersect);
+    drawHorizon(img, obstacles, right_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
+}
+
+void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_horizon){
+    drawHorizon(img, obstacles, best_horizon, 0, IMAGE_WIDTH-1);
+}
+
+void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right){
+    uint8_t *buffer = (uint8_t*) img->buf;
+    // Go through all the pixels
+    for (uint16_t y = limit_left; y < limit_right; y++) {
+        uint16_t x = (int) round(horizon->m*y + horizon->b );
+        
+        //get corresponding pixels
+        uint8_t *yp, *up, *vp;
+        if (x % 2 == 0) {
+            // Even x
+            up = &buffer[y * 2 * img->w + 2 * x];      // U
+            yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
+            vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
+            //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+        } 
+        else {
+            // Uneven x
+            up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
+            //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
+            vp = &buffer[y * 2 * img->w + 2 * x];      // V
+            yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
+        }
+
+        if ( obstacles[y] != 0) {
+            *yp = 128;
+            *up = 100;
+            *vp = 255;
+        }
+        else{
+            *yp = 128;
+            *up = 0;
+            *vp = 100;
+        }
+    }
+}
+
+
 
 struct image_t * horizonDetection(struct image_t *img)
 {
     
     int x = 0;
     int y = 0;
-    int i;int j;
+    int i;
     Mat track;
     int y_max = 0;
     int y_min = 0;
@@ -476,11 +543,9 @@ struct image_t * horizonDetection(struct image_t *img)
     // calculate principal horizon
     horizon_line_t best_horizon_line;
     ransacHorizon((int*)horizon, &best_horizon_line);
-   
+    cout << "best horizon quality:" << best_horizon_line.quality<<endl;
     // check for secondary horizon
     horizon_line_t sec_horizon_line;
-    
-
     if (best_horizon_line.m > 0){
         
         sec_horizon_line.limits[0] = best_horizon_line.limits[1];
@@ -494,7 +559,7 @@ struct image_t * horizonDetection(struct image_t *img)
         sec_horizon_line.limits[1]=best_horizon_line.limits[1];
     }
     
-        //cout << "HHHHHHHHHHHHHHHHHHHHH" << endl;
+    cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
 
     ransacHorizon((int*)horizon, &sec_horizon_line);
 
@@ -504,42 +569,25 @@ struct image_t * horizonDetection(struct image_t *img)
         // Continue with two horizon lines
         if (best_horizon_line.m > sec_horizon_line.m){
             findObstacles_2H((int*) obstacle,(int*) horizon, &best_horizon_line, &sec_horizon_line);
+            if (draw){
+                drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
+            }
         }
         else {
             findObstacles_2H((int*) obstacle,(int*) horizon, &sec_horizon_line, &best_horizon_line);
+            if (draw){
+                drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
+            }
         }
     }
     else {
         // Only use main horizon
         findObstacles_1H((int*) obstacle,(int*) horizon, &best_horizon_line);
+        if (draw){
+            drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
+        }
     }
     
-    // Mat img_w_track = cvLoadImage();
-    // for (i = 0; i < img->h; i++)
-    // {
-    //     for (j = 0; j < img->w; j++)
-    //     {
-    //         if (track.data[i * img->w + j])
-    //         {
-    //             img_w_track.data[i * img->w + j] = ; //green
-    //         }
-    //         int value = int(obstacle[i]);
-    //         if (value >= 0)
-    //         {
-    //             img_w_horizon.data[i * img->w + value] = ; //green
-    //         }
-    //         if (best_horizon[i] >= 0 and best_horizon[i] < img_w_horizon.shape[1]) //needs correction depending on the type of variable
-    //         {                                                                      //red
-    //             img_w_horizon[i][int(best_horizon[i])][0] = 0;
-    //             img_w_horizon[i][int(best_horizon[i])][1] = 255;
-    //             img_w_horizon[i][int(best_horizon[i])][2] = 0;
-    //         }
-    //         img_w_track[i][int(horizon[i])][0] = 0;
-    //         img_w_track[i][int(horizon[i])][1] = 0;
-    //         img_w_track[i][int(horizon[i])][2] = 255;
-    //         //green
-    //     }
-    // }
     return NULL;
 }
 
