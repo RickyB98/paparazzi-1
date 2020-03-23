@@ -21,7 +21,7 @@ using namespace cv;
 #define SECONDARY_HORIZON_THRESHOLD 40
 #define OBSTACLE_THRESHOLD 5
 
-bool draw = true;
+bool draw = false;
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
@@ -436,10 +436,12 @@ void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_ho
 
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right){
     uint8_t *buffer = (uint8_t*) img->buf;
+
     // Go through all the pixels
     for (uint16_t y = limit_left; y < limit_right; y++) {
         uint16_t x = (int) round(horizon->m*y + horizon->b );
-        
+        if (x>=img->w){continue;}
+
         //get corresponding pixels
         uint8_t *yp, *up, *vp;
         if (x % 2 == 0) {

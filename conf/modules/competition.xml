@@ -4,14 +4,9 @@
   <doc>
     <description>Competition Module Group 3</description>
 
-    <define name="COMPETITION_CF_YMIN" value="100" />
-    <define name="COMPETITION_CF_YMAX" value="150" />
-    <define name="COMPETITION_CF_UMIN" value="0" />
-    <define name="COMPETITION_CF_UMAX" value="100" />
-    <define name="COMPETITION_CF_VMIN" value="110" />
-    <define name="COMPETITION_CF_VMAX" value="170" />
   </doc>
 
+<<<<<<< HEAD
   <settings>
     <dl_settings>
       <dl_settings NAME="ColorFilter">
@@ -25,6 +20,8 @@
     </dl_settings>
   </settings>
 
+=======
+>>>>>>> cbf4f2f5e92d09ee974af6a89fc70864492307c4
   <header>
     <file name="competition_main.h"/>
   </header>
