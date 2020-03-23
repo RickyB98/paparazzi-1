@@ -14,10 +14,11 @@ cv::Mat image_edges(struct image_t *img);
 struct image_t * horizonDetection(struct image_t *img);
 int followHorizonRight(cv::Mat *edge_image, Dot *p, int *horizon);
 int followHorizonLeft(cv::Mat *edge_image, Dot *p, int y_lim, int *horizon);
-bool isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M);
+bool isFloor(struct image_t *img, int x, int y);
 cv::Mat findHorizonCandidate(struct image_t *img, cv::Mat *edge_image, Dot *p);
 
 void HorizonDetectionInit();
 void HorizonDetectionLoop();
+
 
 #endif //PAPARAZZI_HORIZON_DETECTION_HPP
