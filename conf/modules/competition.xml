@@ -6,7 +6,6 @@
 
   </doc>
 
-<<<<<<< HEAD
   <settings>
     <dl_settings>
       <dl_settings NAME="ColorFilter">
@@ -20,8 +19,6 @@
     </dl_settings>
   </settings>
 
-=======
->>>>>>> cbf4f2f5e92d09ee974af6a89fc70864492307c4
   <header>
     <file name="competition_main.h"/>
   </header>

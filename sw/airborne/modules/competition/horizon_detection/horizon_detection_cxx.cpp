@@ -132,7 +132,7 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     bool onFloor;
     int onEdge;
     int y;
-    Mat track(img->w, img->h, CV_8UC1);
+    Mat track(img->h, img->w, CV_8UC1);
     x = p->x;
     y = p->y;
     
@@ -147,11 +147,11 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
         track.data[y * img->w + x] = 255;
     }
     // move up to closest edge
-    onEdge = (edge_image->data[y * edge_image->rows + x] > 0);
+    onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
     while (onEdge == 0 && x < img->w - 1)
     {
         x++;
-        onEdge = (edge_image->data[y * edge_image->rows + x] > 0);
+        onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
         track.data[y * img->w + x] = 255;
     }
     p->x = x;
@@ -167,7 +167,7 @@ int followHorizonLeft(Mat *edge_image, Dot *p, int y_lim, int *horizon)
     x = p->x;
     y = p->y;
 
-    while (y > y_lim && x > 0 && x < edge_image->rows - 1)
+    while (y > y_lim && x > 0 && x < edge_image->cols - 1)
     {
         y--;
         if (edge_image->data[y * edge_image->cols + x] > 0)
@@ -206,6 +206,7 @@ int followHorizonLeft(Mat *edge_image, Dot *p, int y_lim, int *horizon)
             }
         }
         horizon[y] = x;
+        cout <<"HORIZON"<< horizon[y]<< "    "<< y  <<endl;
     }
     return y;
 }
@@ -218,7 +219,7 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
     x = p->x;
     y = p->y;
 
-    while (y < edge_image->cols - 1 && x > 0 && x < edge_image->rows - 1)
+    while (y < edge_image->rows - 1 && x > 0 && x < edge_image->cols - 1)
     {
         y++;
         if (edge_image->data[y * edge_image->cols + x] > 0)
@@ -257,6 +258,7 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
             }
         }
         horizon[y] = x;
+        cout <<"HORIZON????????????????"<< horizon[y]<<"     " << y <<endl;
     }
     return y;
 }
@@ -486,7 +488,9 @@ struct image_t * horizonDetection(struct image_t *img)
     int horizon[520];
     Mat edge_image = image_edges(img);
     cv::imwrite("cnn.png", edge_image);
-    while (y < img->w)
+    cout<<img->h<<" "<< img->w <<endl;
+    cout<<edge_image.cols<<" "<< edge_image.rows <<endl;
+    while (y < img->h)
     {
         Dot p;
         p.x = x;
@@ -494,7 +498,7 @@ struct image_t * horizonDetection(struct image_t *img)
         
         track = findHorizonCandidate(img, &edge_image, &p);
             
-        if (x == (img->h - 1))
+        if (x == (img->w - 1))
         {
             x = p.x;
             y = p.y;
@@ -531,7 +535,7 @@ struct image_t * horizonDetection(struct image_t *img)
     // calculate principal horizon
     horizon_line_t best_horizon_line;
     ransacHorizon((int*)horizon, &best_horizon_line);
-    cout << "best horizon quality:" << best_horizon_line.quality<<endl;
+    //cout << "best horizon quality:" << best_horizon_line.quality<<endl;
     // check for secondary horizon
     horizon_line_t sec_horizon_line;
     if (best_horizon_line.m > 0){
@@ -547,9 +551,10 @@ struct image_t * horizonDetection(struct image_t *img)
         sec_horizon_line.limits[1]=best_horizon_line.limits[1];
     }
     
-    cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
+    //cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
 
     ransacHorizon((int*)horizon, &sec_horizon_line);
+
 
     // find obstacles using the horizon lines
     int obstacle[IMAGE_WIDTH] = {0};
@@ -557,23 +562,23 @@ struct image_t * horizonDetection(struct image_t *img)
         // Continue with two horizon lines
         if (best_horizon_line.m > sec_horizon_line.m){
             findObstacles_2H((int*) obstacle,(int*) horizon, &best_horizon_line, &sec_horizon_line);
-            if (draw){
-                drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
-            }
+            // if (draw){dra
+            //     drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
+            // }
         }
         else {
             findObstacles_2H((int*) obstacle,(int*) horizon, &sec_horizon_line, &best_horizon_line);
-            if (draw){
-                drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
-            }
+            // if (draw){
+            //     drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
+            // }
         }
     }
     else {
         // Only use main horizon
         findObstacles_1H((int*) obstacle,(int*) horizon, &best_horizon_line);
-        if (draw){
-            drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
-        }
+        // if (draw){
+        //     drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
+        // }
     }
     
     return NULL;
