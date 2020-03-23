@@ -202,4 +202,4 @@ sw/ext/pprzlink-bkp/
 cmake-build-debug/
 CMakeLists.txt
 
-.vscode/settings.xml
+.vscode/settings.json

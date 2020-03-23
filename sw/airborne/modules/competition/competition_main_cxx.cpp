@@ -3,7 +3,7 @@
 #include <iostream>
 
 void CompetitionInit() {
-
+  
 }
 
 void CompetitionLoop() {

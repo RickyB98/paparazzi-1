@@ -207,6 +207,8 @@ struct flow_t *opticFlowLK(struct image_t *new_img, struct image_t *old_img, str
         vectors[new_p].flow_y = vectors[new_p].flow_y + step_y;
         vectors[new_p].error = error;
 
+        vectors[new_p].pos.count = points[p].count + 1;
+
         // Check if we exceeded the treshold CHANGED made this better for 0.03
         if ((abs(step_x) + abs(step_y)) < step_threshold) {
           break;

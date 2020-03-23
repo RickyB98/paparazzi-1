@@ -44,7 +44,7 @@ struct image_t {
   enum image_type type;   ///< The image type
   uint16_t w;             ///< Image width
   uint16_t h;             ///< Image height
-  struct timeval ts;      ///< The timestamp of creation
+  struct timeval ts;      ///< The timesmp of creation
   struct FloatEulers eulers;   ///< Euler Angles at time of image
   uint32_t pprz_ts;       ///< The timestamp in us since system startup
 
