@@ -48,21 +48,13 @@ void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_ho
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right);
 RNG rng(12345);
 
-uint8_t cf_ymin = 0;
-uint8_t cf_ymax = 0;
+uint8_t cf_ymin = 100;
+uint8_t cf_ymax = 150;
 uint8_t cf_umin = 0;
-uint8_t cf_umax = 0;
-uint8_t cf_vmin = 0;
-uint8_t cf_vmax = 0;
+uint8_t cf_umax = 100;
+uint8_t cf_vmin = 110;
+uint8_t cf_vmax = 170;
 
-void horizon_detection_init(){
-    cf_ymin = COMPETITION_CF_YMIN;
-    cf_ymax = COMPETITION_CF_YMAX;
-    cf_umin = COMPETITION_CF_UMIN;
-    cf_umax = COMPETITION_CF_UMAX;
-    cf_vmin = COMPETITION_CF_VMIN;
-    cf_vmax = COMPETITION_CF_VMAX;
-}
 
 Mat image_edges(struct image_t *img)
 {
@@ -95,16 +87,10 @@ Mat image_edges(struct image_t *img)
  * @param[in] im The input image to filter
  * @param[in] x The x-coordinate of the pixel
  * @param[in] y The y-coordinate of the pixel
- * @param[in] y_m The Y minimum value
- * @param[in] y_M The Y maximum value
- * @param[in] u_m The U minimum value
- * @param[in] u_M The U maximum value
- * @param[in] v_m The V minimum value
- * @param[in] v_M The V maximum value
  * @return The success of the filter.
  */
 
-bool isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M)
+bool isFloor(struct image_t *img, int x, int y)
 {
     // odd pixels are uy
     // even pixels are vy
@@ -125,7 +111,7 @@ bool isFloor(struct image_t *img, int x, int y, uint8_t y_m, uint8_t y_M, uint8_
     buf += 2 * (y * (img->w) + x); // each pixel has two bytes
 
     if (
-        (buf[1] >= y_m) && (buf[1] <= y_M) && (buf[0] >= u_m) && (buf[0] <= u_M) && (buf[2] >= v_m) && (buf[2] <= v_M))
+        (buf[1] >= cf_ymin) && (buf[1] <= cf_ymax) && (buf[0] >= cf_umin) && (buf[0] <= cf_umax) && (buf[2] >= cf_vmin) && (buf[2] <= cf_vmax))
     {
             
         // the pixel passes:
@@ -150,14 +136,14 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     x = p->x;
     y = p->y;
     
-    onFloor = isFloor(img, y, x, 0, 0, 0, 0, 0, 0);
+    onFloor = isFloor(img, y, x);
 
     track.data[y * img->w + x] = 255;
         //cout << "nnnnnn" << endl;
     while (!onFloor && x < img->w - 1)
     {
         x++;
-        onFloor = isFloor(img, y, x, 0, 0, 0, 0, 0, 0);
+        onFloor = isFloor(img, y, x);
         track.data[y * img->w + x] = 255;
     }
     // move up to closest edge
@@ -594,6 +580,13 @@ struct image_t * horizonDetection(struct image_t *img)
 void HorizonDetectionInit() {
     cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
     cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
+
+    //cf_ymin = COMPETITION_CF_YMIN;
+    //cf_ymax = COMPETITION_CF_YMAX;
+    //cf_umin = COMPETITION_CF_UMIN;
+    //cf_umax = COMPETITION_CF_UMAX;
+    //cf_vmin = COMPETITION_CF_VMIN;
+    //cf_vmax = COMPETITION_CF_VMAX;
 }
 
 void HorizonDetectionLoop() {
