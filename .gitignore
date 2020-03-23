@@ -27,7 +27,7 @@
 .cache.xml
 
 # Visual Studio Code IDE settings
-/.vscode/*
+.vscode/
 
 # Eclipse IDE project files
 *.cproject
