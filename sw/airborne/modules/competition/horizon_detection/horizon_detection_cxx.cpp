@@ -436,7 +436,7 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
     int diff;
     for (i=limit_left; i<= limit_right; i++){
         diff = (int) round(horizon[i] - horizon_line->m*i - horizon_line->b );
-        if (diff > obstacle_threshold){
+        if (abs(diff) > obstacle_threshold){
             obstacles[i] = horizon[i];
         }
         else{continue;}
@@ -478,7 +478,7 @@ void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, i
             yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
         }
 
-        if ( obstacles[y] != 0) {
+        if ( obstacles[y] >= 0) {
             *yp = 128;
             *up = 100;
             *vp = 255;
@@ -491,6 +491,34 @@ void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, i
     }
 }
 
+void drawHorizonArray(struct image_t *img, int *horizon){
+    uint8_t *buffer = (uint8_t*) img->buf;
+
+    // Go through all the pixels
+    for (uint16_t y = 0; y < IMAGE_WIDTH; y++) {
+        int x = horizon[y];
+        if (x>=img->w || x<0){continue;}
+
+        //get corresponding pixels
+        uint8_t *yp, *up, *vp;
+        if (x % 2 == 0) {
+            // Even x
+            up = &buffer[y * 2 * img->w + 2 * x];      // U
+            yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
+            vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
+            //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+        } 
+        else {
+            // Uneven x
+            up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
+            //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
+            vp = &buffer[y * 2 * img->w + 2 * x];      // V
+            yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
+        }
+
+        *yp = 255;
+    }
+}
 
 
 struct image_t * horizonDetection(struct image_t *img)
@@ -557,7 +585,7 @@ struct image_t * horizonDetection(struct image_t *img)
     // calculate principal horizon
     horizon_line_t best_horizon_line;
     ransacHorizon((int*)horizon, &best_horizon_line);
-    int obstacle[IMAGE_WIDTH] = {0};
+    int obstacle[IMAGE_WIDTH] = {-1};
     //cout << "best horizon quality:" << best_horizon_line.quality<<endl;
     // check for secondary horizon
     if(best_horizon_line.quality<BEST_HORIZON_QUAL_THRESHOLD){
@@ -610,7 +638,9 @@ struct image_t * horizonDetection(struct image_t *img)
             drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
         }
     }
-        
+    if (draw){
+        drawHorizonArray(img, (int*) horizon);
+    }
     return NULL;
 }
 
