@@ -104,7 +104,18 @@
     </module>
     <module name="opticflow">
     </module>
-    <module name="horizon_detection">
+    <module name="horizon_detection">     
+        <define name="HORIZON_DETECTION_CF_YMIN" value="100" />
+        <define name="HORIZON_DETECTION_CF_YMAX" value="150" />
+        <define name="HORIZON_DETECTION_CF_UMIN" value="0" />
+        <define name="HORIZON_DETECTION_CF_UMAX" value="100" />
+        <define name="HORIZON_DETECTION_CF_VMIN" value="110" />
+        <define name="HORIZON_DETECTION_CF_VMAX" value="170" />
+
+        <define name="HORIZON_DETECTION_RANSAC_THRESHOLD" value="5" />
+        <define name="HORIZON_DETECTION_RANSAC_ITER" value="10" />
+        <define name="HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD" value="40" />
+        <define name="HORIZON_DETECTION_OBSTACLE_THRESHOLD" value="5" />
     </module>
     
     <module name="video_rtp_stream">

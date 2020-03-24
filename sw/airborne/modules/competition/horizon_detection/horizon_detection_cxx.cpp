@@ -15,13 +15,9 @@ using namespace std;
 using namespace cv;
 
 #define IMAGE_WIDTH 520
-#define RANSAC_ITERATIONS 10
-#define RANSAC_THRESHOLD 2
-#define RANSAC_TIMEOUT_LIM 5
-#define SECONDARY_HORIZON_THRESHOLD 40
-#define OBSTACLE_THRESHOLD 5
+#define RANSAC_TIMEOUT_LIM 10
 
-bool draw = false;
+
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
@@ -48,13 +44,19 @@ void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_ho
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right);
 RNG rng(12345);
 
-uint8_t cf_ymin = 100;
-uint8_t cf_ymax = 150;
+// Color filter settings
+uint8_t cf_ymin = 0;
+uint8_t cf_ymax = 0;
 uint8_t cf_umin = 0;
-uint8_t cf_umax = 100;
-uint8_t cf_vmin = 110;
-uint8_t cf_vmax = 170;
-
+uint8_t cf_umax = 0;
+uint8_t cf_vmin = 0;
+uint8_t cf_vmax = 0;
+// RANSAC Horizon settings
+bool draw = false;
+uint8_t ransac_threshold = 1;
+uint8_t ransac_iter = 1;
+uint8_t sec_horizon_threshold = 1;
+uint8_t obstacle_threshold = 1;
 
 Mat image_edges(struct image_t *img)
 {
@@ -94,11 +96,6 @@ bool isFloor(struct image_t *img, int x, int y)
 {
     // odd pixels are uy
     // even pixels are vy
-    // adapt x, so that we always have u-channel in index 0:
-    if (x % 2 == 1)
-    {
-        x--;
-    }
 
     // Is the pixel inside the image?
     if (x < 0 || x >= img->w || y < 0 || y >= img->h)
@@ -108,12 +105,25 @@ bool isFloor(struct image_t *img, int x, int y)
 
     // Take the right place in the buffer:
     uint8_t *buf = (uint8_t *)(img->buf);
-    buf += 2 * (y * (img->w) + x); // each pixel has two bytes
+    uint8_t *yp, *up, *vp;
+    if (x % 2 == 0) {
+    // Even x
+    up = &buf[y * 2 * img->w + 2 * x];      // U
+    yp = &buf[y * 2 * img->w + 2 * x + 1];  // Y1
+    vp = &buf[y * 2 * img->w + 2 * x + 2];  // V
+    //yp = &buf[y * 2 * img->w + 2 * x + 3]; // Y2
+    } else {
+    // Uneven x
+    up = &buf[y * 2 * img->w + 2 * x - 2];  // U
+    //yp = &buf[y * 2 * img->w + 2 * x - 1]; // Y1
+    vp = &buf[y * 2 * img->w + 2 * x];      // V
+    yp = &buf[y * 2 * img->w + 2 * x + 1];  // Y2
+    }
 
-    if (
-        (buf[1] >= cf_ymin) && (buf[1] <= cf_ymax) && (buf[0] >= cf_umin) && (buf[0] <= cf_umax) && (buf[2] >= cf_vmin) && (buf[2] <= cf_vmax))
+    if ((*yp >= cf_ymin) && (*yp <= cf_ymax) && 
+        (*up >= cf_umin) && (*up <= cf_umax) && 
+        (*vp >= cf_vmin) && (*vp <= cf_vmax))
     {
-            
         // the pixel passes:
         return true;
     }
@@ -206,7 +216,6 @@ int followHorizonLeft(Mat *edge_image, Dot *p, int y_lim, int *horizon)
             }
         }
         horizon[y] = x;
-        cout <<"HORIZON"<< horizon[y]<< "    "<< y  <<endl;
     }
     return y;
 }
@@ -258,7 +267,6 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
             }
         }
         horizon[y] = x;
-        cout <<"HORIZON????????????????"<< horizon[y]<<"     " << y <<endl;
     }
     return y;
 }
@@ -271,13 +279,13 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     int last = best_horizon_line->limits[1];
 
     // initialize ransac horizon variables
-    int quality[RANSAC_ITERATIONS] = {0};
-    float error[RANSAC_ITERATIONS] = {0.0f};
-    float m[RANSAC_ITERATIONS] = {0.0f};
-    float b[RANSAC_ITERATIONS] = {0.0f};
+    int quality[ransac_iter] = {0};
+    float error[ransac_iter] = {0.0f};
+    float m[ransac_iter] = {0.0f};
+    float b[ransac_iter] = {0.0f};
 
     int best_quality = 0;
-    int best_error = RANSAC_THRESHOLD * (N + 1);
+    int best_error = ransac_threshold * (N + 1);
     float best_m = 0;
     float best_b = 0;
 
@@ -286,61 +294,43 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 
 
     int i,j;
-    for (i = 0; i < RANSAC_ITERATIONS; i++)
+    for (i = 0; i < ransac_iter; i++)
     {
         // pick two different, non-zero points on the horizon, within [first,last]
         timeout = false;
         int s1, s2;
-        //cout << "seraquesim?" << endl;
 
         timeout_counter_s1=0;
         do{
             s1=rand()%(last-first + 1) + first;
-            //s1 = int(round(((last-first)*rand()/(RAND_MAX+1.0))));
             timeout_counter_s1++;
-            cout << last << "ttt" << endl;
-            cout << first << "fff" << endl;
-            cout << s1 << "bbb" << endl;
-            cout << horizon[s1] << "hhh" << endl;
         } while (horizon[s1]==0 && timeout_counter_s1<RANSAC_TIMEOUT_LIM);
         
         timeout_counter_s2=0;
         do{
             s2=rand()%(last-first + 1) + first;
-            //s2 = int(round(((last-first)*rand()/(RAND_MAX+1.0))));
             timeout_counter_s2++;
-            //cout << "seraquesim nononono" << endl;
-            cout << s2 << endl;
-            cout << horizon[s2] << "sssssssssss" << endl;
+
         } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter_s2<RANSAC_TIMEOUT_LIM);
 
         if ((timeout_counter_s1 >= RANSAC_TIMEOUT_LIM)||(timeout_counter_s2 >= RANSAC_TIMEOUT_LIM)){continue;}
-
-                cout << "aaaa" << endl;
          // calculate horizon based on s1 and s2
-                cout << s1 << " " << s2 << endl;
 
 
         // why is this necessary? 
         if(s1!=s2){
         m[i] = (float) (horizon[s2] - horizon[s1]) / (float) (s2 - s1);
         b[i] = horizon[s1] - m[i] * s1;
-        cout << m[i]<< "m" <<endl;
-        cout << b[i] << "b" << endl;
         }
         else
         {
             timeout_counter_s2=0;
             do{
             s2=rand()%(last-first + 1) + first;
-            //s2 = int(round(((last-first)*rand()/(RAND_MAX+1.0))));
             timeout_counter_s2++;
-            //cout << "seraquesim sisisisi" << endl;
-            //cout << s2 << endl;
+
             } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter_s2<RANSAC_TIMEOUT_LIM);
-        
-                cout << s2 << endl;
-            cout << horizon[s2] << "ppppppppp" << endl;
+   
             m[i] = (float)(horizon[s2] - horizon[s1]) / (float)(s2 - s1);
             b[i] = horizon[s1] - m[i] * s1;
             break;
@@ -352,16 +342,14 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
         {
             float dx = abs(horizon[j] - m[i] * j - b[i]);
 
-            if (dx < RANSAC_THRESHOLD)
+            if (dx < ransac_threshold)
             {
                 error[i] += dx;
                 quality[i]++;
-                cout << quality[i]<<"   QUALITY     QUALITY"<< i << "       "<<endl;
             }
             else
             {
-                error[i] += RANSAC_THRESHOLD;
-                cout << quality[i]<<"  MISTAKE MISTAKE   "<< i <<endl;
+                error[i] += ransac_threshold;
             }
         }
  
@@ -381,25 +369,16 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     
     for (i=first; i<last; i++){
         local_error = horizon[i] - abs(best_m*i + best_b);
-
-        //cout << horizon[i] << "horizon" << endl;
-        //cout << best_b << "b" <<endl;
-        //cout << best_m << "m" << endl;
-        //cout << local_error << "localerror" <<endl;
-        if (best_m > 0 && local_error<RANSAC_THRESHOLD){
+        if (best_m > 0 && local_error<ransac_threshold){
             limit[1] = i-2;
-            //cout << "option 1"<<"" << limit[1]<< endl;
         }
-        else if (best_m < 0 && local_error<RANSAC_THRESHOLD){
+        else if (best_m < 0 && local_error<ransac_threshold){
             limit[0] = i+2;
-            //cout << "option 2" <<""<< limit[0]<< endl;
             break;
         }
         else{
             limit[0]=best_horizon_line->limits[0];
             limit[1]=best_horizon_line->limits[1];
-            //cout << "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" <<""<<limit[1]<<"" << limit[0]<< endl;
-
             continue;
         }
     }
@@ -427,7 +406,7 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
     int diff;
     for (i=limit_left; i<= limit_right; i++){
         diff = (int) round(horizon[i] - horizon_line->m*i - horizon_line->b );
-        if (diff > OBSTACLE_THRESHOLD){
+        if (diff > obstacle_threshold){
             obstacles[i] = horizon[i];
         }
         else{continue;}
@@ -500,12 +479,9 @@ struct image_t * horizonDetection(struct image_t *img)
     }
     
     Mat edge_image = image_edges(img);
-    cv::imwrite("cnn.png", edge_image);
-    cout<<img->h<<" "<< img->w <<endl;
-    cout<<edge_image.cols<<" "<< edge_image.rows <<endl;
+    //cv::imwrite("cnn.png", edge_image);
     while (y < img->h)
     {
-        cout << "HEEELLLOOOOOOOO"<<endl;
         Dot p;
         p.x = x;
         p.y = y;
@@ -568,44 +544,30 @@ struct image_t * horizonDetection(struct image_t *img)
     cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
 
     ransacHorizon((int*)horizon, &sec_horizon_line);
-    Mat picture(img->h, img->w, CV_8UC1);
-        for (i=0;i<img->h;i++){
-            for (int j = 0; j < img->w; ++j) {
-                if (horizon[i]==j)
-                    picture.data[i*img->w +j] = 255;
-                else if (abs(j - best_horizon_line.m*i - best_horizon_line.b) < 1)
-                    picture.data[i*img->w +j] = 128;
-                else if (abs(j - sec_horizon_line.m*i-sec_horizon_line.b) < 1)
-                    picture.data[i*img->w +j] = 100;
-                else
-                    picture.data[i*img->w +j] = 0;
-            }
-         }
-         cv::imwrite("vala.png", picture);
 
     // find obstacles using the horizon lines
     int obstacle[IMAGE_WIDTH] = {0};
-    if (sec_horizon_line.quality > SECONDARY_HORIZON_THRESHOLD){
+    if (sec_horizon_line.quality > sec_horizon_threshold){
         // Continue with two horizon lines
         if (best_horizon_line.m > sec_horizon_line.m){
             findObstacles_2H((int*) obstacle,(int*) horizon, &best_horizon_line, &sec_horizon_line);
-            // if (draw){dra
-            //     drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
-            // }
+            if (draw){
+                 drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
+            }
         }
         else {
             findObstacles_2H((int*) obstacle,(int*) horizon, &sec_horizon_line, &best_horizon_line);
-            // if (draw){
-            //     drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
-            // }
+            if (draw){
+                drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
+            }
         }
     }
     else {
         // Only use main horizon
         findObstacles_1H((int*) obstacle,(int*) horizon, &best_horizon_line);
-        // if (draw){
-        //     drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
-        // }
+        if (draw){
+            drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
+        }
     }
     
     return NULL;
@@ -615,12 +577,19 @@ void HorizonDetectionInit() {
     cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
     cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
 
-    //cf_ymin = COMPETITION_CF_YMIN;
-    //cf_ymax = COMPETITION_CF_YMAX;
-    //cf_umin = COMPETITION_CF_UMIN;
-    //cf_umax = COMPETITION_CF_UMAX;
-    //cf_vmin = COMPETITION_CF_VMIN;
-    //cf_vmax = COMPETITION_CF_VMAX;
+    // Default values floor filter settings
+    cf_ymin = HORIZON_DETECTION_CF_YMIN;
+    cf_ymax = HORIZON_DETECTION_CF_YMAX;
+    cf_umin = HORIZON_DETECTION_CF_UMIN;
+    cf_umax = HORIZON_DETECTION_CF_UMAX;
+    cf_vmin = HORIZON_DETECTION_CF_VMIN;
+    cf_vmax = HORIZON_DETECTION_CF_VMAX;
+
+    // Default values ransac horizon settings
+    ransac_threshold = HORIZON_DETECTION_RANSAC_THRESHOLD;
+    ransac_iter = HORIZON_DETECTION_RANSAC_ITER;
+    sec_horizon_threshold = HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD;
+    obstacle_threshold = HORIZON_DETECTION_OBSTACLE_THRESHOLD;
 }
 
 void HorizonDetectionLoop() {
