@@ -53,7 +53,7 @@ uint8_t cf_umax = 0;
 uint8_t cf_vmin = 0;
 uint8_t cf_vmax = 0;
 // RANSAC Horizon settings
-bool draw = false;
+bool draw = true;
 uint8_t ransac_threshold = 1;
 uint8_t ransac_iter = 1;
 uint8_t sec_horizon_threshold = 1;
@@ -318,7 +318,7 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
         // calculate error and quality
         float dx = 0;
         // PROBLEM: CHANGE TO j<IMAGE_WIDTH CRASHES AFTER A WHILE WITH NO ERROR MESSAGE
-        for (j = 0; j < 10; j++)
+        for (j = 10; j <510; j=j+6)
         {
             dx = abs(horizon[2*j] - m[i] * 2*j - b[i]);
 
@@ -459,7 +459,7 @@ struct image_t * horizonDetection(struct image_t *img)
     }
     
     Mat edge_image = image_edges(img);
-    //cv::imwrite("cnn.png", edge_image);
+    cv::imwrite("cnn.png", edge_image);
     while (y < img->h)
     {
         Dot p;
