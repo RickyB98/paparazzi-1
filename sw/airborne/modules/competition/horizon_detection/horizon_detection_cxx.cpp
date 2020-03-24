@@ -439,7 +439,9 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
         if (abs(diff) > obstacle_threshold){
             obstacles[i] = horizon[i];
         }
-        else{continue;}
+        else{
+            obstacles[i] = -1;
+            continue;}
     }
 }
 
@@ -585,7 +587,7 @@ struct image_t * horizonDetection(struct image_t *img)
     // calculate principal horizon
     horizon_line_t best_horizon_line;
     ransacHorizon((int*)horizon, &best_horizon_line);
-    int obstacle[IMAGE_WIDTH] = {-1};
+    int obstacle[IMAGE_WIDTH] = {0};
     //cout << "best horizon quality:" << best_horizon_line.quality<<endl;
     // check for secondary horizon
     if(best_horizon_line.quality<BEST_HORIZON_QUAL_THRESHOLD){
