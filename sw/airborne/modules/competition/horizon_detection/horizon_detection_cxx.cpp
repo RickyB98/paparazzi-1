@@ -99,7 +99,7 @@ bool isFloor(struct image_t *img, int x, int y)
     // even pixels are vy
 
     // Is the pixel inside the image?
-    if (x < 0 || x >= img->w || y < 0 || y >= img->h)
+    if (x < 0 || x >= img->w -50 || y < 0 || y >= img->h)
     {
         return false;
     }
@@ -120,6 +120,7 @@ bool isFloor(struct image_t *img, int x, int y)
     vp = &buf[y * 2 * img->w + 2 * x];      // V
     yp = &buf[y * 2 * img->w + 2 * x + 1];  // Y2
     }
+
 
     if ((*yp >= cf_ymin) && (*yp <= cf_ymax) && 
         (*up >= cf_umin) && (*up <= cf_umax) && 
@@ -148,10 +149,10 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     y = p->y;
     
     onFloor = isFloor(img, y, x);
-
+    
     track.data[y * img->w + x] = 255;
         //cout << "nnnnnn" << endl;
-    while (!onFloor && x < img->w - 1)
+    while (!onFloor && x < img->w)
     {
         x++;
         onFloor = isFloor(img, y, x);
@@ -159,7 +160,7 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     }
     // move up to closest edge
     onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
-    while (onEdge == 0 && x < img->w - 1)
+    while (onEdge == 0 && x < img->w- 50 - 1)
     {
         x++;
         onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
@@ -229,6 +230,7 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
     x = p->x;
     y = p->y;
 
+     
     while (y < edge_image->rows - 1 && x > 0 && x < edge_image->cols+1)
     {
         y++;
@@ -240,9 +242,17 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
         { // edge continues bottom right
             x--;
         }
+        else if (edge_image->data[y * edge_image->cols + x - 2] > 0)
+        { // edge continues bottom right
+            x=x-2;
+        }
         else if (edge_image->data[y * edge_image->cols + x + 1] > 0)
         { // edge continues top right
             x++;
+        }
+        else if (edge_image->data[y * edge_image->cols + x + 2] > 0)
+        { // edge continues top right
+            x=x+2;
         }
         else
         { // increase step
@@ -256,10 +266,50 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
                 horizon[y - 1] = x;
                 x--;
             }
+            else if (edge_image->data[y * edge_image->cols + x - 2] > 0)
+            {
+                horizon[y - 1] = x;
+                x=x-2;
+            }
             else if (edge_image->data[y * edge_image->cols + x + 1] > 0)
             {
                 horizon[y - 1] = x;
                 x++;
+            }
+            else if (edge_image->data[y * edge_image->cols + x + 2] > 0)
+            {
+                horizon[y - 1] = x;
+                x=x+2;
+            }
+            else if (edge_image->data[(y+1) * edge_image->cols + x ] > 0)
+            {
+                horizon[y - 1] = x;
+                horizon[y] = x;
+                y++;
+            }
+            else if (edge_image->data[(y+1) * edge_image->cols + x - 1] > 0)
+            {
+                horizon[y - 1] = x;
+                horizon[y] = x;
+                y++;x--;
+            }
+            else if (edge_image->data[(y+1) * edge_image->cols + x - 2] > 0)
+            {
+                horizon[y - 1] = x;
+                horizon[y] = x;
+                y++;x=x-2;;
+            }
+            else if (edge_image->data[(y+1) * edge_image->cols + x + 1] > 0)
+            {
+                horizon[y - 1] = x;
+                horizon[y] = x;
+                y++;x++;
+            }
+            else if (edge_image->data[(y+1) * edge_image->cols + x + 2] > 0)
+            {
+                horizon[y - 1] = x;
+                horizon[y] = x;
+                y++;x=x+2;
             }
             else
             {
@@ -487,8 +537,8 @@ struct image_t * horizonDetection(struct image_t *img)
             y_min = followHorizonLeft(&edge_image, &p, 0, (int*) horizon);
             y_max = followHorizonRight(&edge_image, &p, (int*) horizon);
             // could go right first and use distance to decide if we want to overwrite when moving left
-            y = y_max + 1;
-            p.y = y_max + 1;
+            y = y_max + 2;
+            p.y = y_max + 2;
             x = 0;
             p.x = 0;
             // if the segment is too short, scrap it
