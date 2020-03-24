@@ -6,6 +6,19 @@
 
   </doc>
 
+  <settings>
+    <dl_settings>
+      <dl_settings NAME="ColorFilter">
+        <dl_setting var="cf_ymin" min="0" step="1" max="255" shortname="y_min" />
+        <dl_setting var="cf_ymax" min="0" step="1" max="255" shortname="y_max" />
+        <dl_setting var="cf_umin" min="0" step="1" max="255" shortname="u_min" />
+        <dl_setting var="cf_umax" min="0" step="1" max="255" shortname="u_max" />
+        <dl_setting var="cf_vmin" min="0" step="1" max="255" shortname="v_min" />
+        <dl_setting var="cf_vmax" min="0" step="1" max="255" shortname="v_max" />
+      </dl_settings>
+    </dl_settings>
+  </settings>
+
   <header>
     <file name="competition_main.h"/>
   </header>
