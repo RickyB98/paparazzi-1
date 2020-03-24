@@ -16,6 +16,7 @@ using namespace cv;
 
 #define IMAGE_WIDTH 520
 #define RANSAC_TIMEOUT_LIM 10
+#define BEST_HORIZON_QUAL_THRESHOLD 300
 
 
 
@@ -42,7 +43,7 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
 void drawHorizon_2H(struct image_t *img, int *obstacles, horizon_line_t *left_horizon, horizon_line_t *right_Horizon);
 void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_horizon);
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right);
-RNG rng(12345);
+RNG rng;
 
 // Color filter settings
 uint8_t cf_ymin = 0;
@@ -273,10 +274,10 @@ int followHorizonRight(Mat *edge_image, Dot *p, int *horizon)
 
 void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 {
-    int N = sizeof(horizon);
-    // find non-zero range
+
     int first = best_horizon_line->limits[0];
     int last = best_horizon_line->limits[1];
+    
 
     // initialize ransac horizon variables
     int quality[ransac_iter] = {0};
@@ -285,62 +286,41 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     float b[ransac_iter] = {0.0f};
 
     int best_quality = 0;
-    int best_error = ransac_threshold * (N + 1);
+    int best_error = ransac_threshold * (IMAGE_WIDTH + 1);
     float best_m = 0;
     float best_b = 0;
 
-    uint8_t timeout_counter_s1 = 0; uint8_t timeout_counter_s2 = 0;
-    bool timeout;
-
-
+    uint8_t timeout_counter = 0;
     int i,j;
     for (i = 0; i < ransac_iter; i++)
     {
         // pick two different, non-zero points on the horizon, within [first,last]
-        timeout = false;
         int s1, s2;
+        timeout_counter=0;
 
-        timeout_counter_s1=0;
         do{
-            s1=rand()%(last-first + 1) + first;
-            timeout_counter_s1++;
-        } while (horizon[s1]==0 && timeout_counter_s1<RANSAC_TIMEOUT_LIM);
-        
-        timeout_counter_s2=0;
+            s1 = rng.uniform(first, last+1);
+            timeout_counter++;
+        } while (horizon[s1]==0 && timeout_counter<RANSAC_TIMEOUT_LIM);
+
         do{
-            s2=rand()%(last-first + 1) + first;
-            timeout_counter_s2++;
+            s2 = rng.uniform(first, last+1);
+            timeout_counter++;
+        } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter<RANSAC_TIMEOUT_LIM);
 
-        } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter_s2<RANSAC_TIMEOUT_LIM);
-
-        if ((timeout_counter_s1 >= RANSAC_TIMEOUT_LIM)||(timeout_counter_s2 >= RANSAC_TIMEOUT_LIM)){continue;}
-         // calculate horizon based on s1 and s2
-
-
-        // why is this necessary? 
-        if(s1!=s2){
+        if (timeout_counter >= RANSAC_TIMEOUT_LIM){
+            continue;
+        }
+        // calculate horizon based on s1 and s2
         m[i] = (float) (horizon[s2] - horizon[s1]) / (float) (s2 - s1);
         b[i] = horizon[s1] - m[i] * s1;
-        }
-        else
-        {
-            timeout_counter_s2=0;
-            do{
-            s2=rand()%(last-first + 1) + first;
-            timeout_counter_s2++;
 
-            } while ( (s1 == s2 || horizon[s2]==0 ) && timeout_counter_s2<RANSAC_TIMEOUT_LIM);
-   
-            m[i] = (float)(horizon[s2] - horizon[s1]) / (float)(s2 - s1);
-            b[i] = horizon[s1] - m[i] * s1;
-            break;
-        }
-        
         // calculate error and quality
-
-        for (j = 0; j < N; j++)
+        float dx = 0;
+        // PROBLEM: CHANGE TO j<IMAGE_WIDTH CRASHES AFTER A WHILE WITH NO ERROR MESSAGE
+        for (j = 0; j < 10; j++)
         {
-            float dx = abs(horizon[j] - m[i] * j - b[i]);
+            dx = abs(horizon[2*j] - m[i] * 2*j - b[i]);
 
             if (dx < ransac_threshold)
             {
@@ -370,15 +350,15 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     for (i=first; i<last; i++){
         local_error = horizon[i] - abs(best_m*i + best_b);
         if (best_m > 0 && local_error<ransac_threshold){
-            limit[1] = i-2;
+            limit[1] = i; //-2; -> what was that for?
         }
         else if (best_m < 0 && local_error<ransac_threshold){
-            limit[0] = i+2;
+            limit[0] = i; //+2;
             break;
         }
         else{
-            limit[0]=best_horizon_line->limits[0];
-            limit[1]=best_horizon_line->limits[1];
+            //limit[0]=best_horizon_line->limits[0];
+            //limit[1]=best_horizon_line->limits[1];
             continue;
         }
     }
@@ -428,8 +408,8 @@ void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, i
 
     // Go through all the pixels
     for (uint16_t y = limit_left; y < limit_right; y++) {
-        uint16_t x = (int) round(horizon->m*y + horizon->b );
-        if (x>=img->w){continue;}
+        int x = (int) round(horizon->m*y + horizon->b );
+        if (x>=img->w || x<0){continue;}
 
         //get corresponding pixels
         uint8_t *yp, *up, *vp;
@@ -521,55 +501,66 @@ struct image_t * horizonDetection(struct image_t *img)
             }
         }
     }
+
+
     
     // calculate principal horizon
     horizon_line_t best_horizon_line;
     ransacHorizon((int*)horizon, &best_horizon_line);
-    cout << "best horizon quality:" << best_horizon_line.quality<<endl;
-    // check for secondary horizon
-    horizon_line_t sec_horizon_line;
-    if (best_horizon_line.m > 0){
-        
-        sec_horizon_line.limits[0] = best_horizon_line.limits[1];
-    }
-    else if (best_horizon_line.m < 0) {
-        sec_horizon_line.limits[1] = best_horizon_line.limits[0];
-    }
-    else
-    {
-        sec_horizon_line.limits[0]=best_horizon_line.limits[0];
-        sec_horizon_line.limits[1]=best_horizon_line.limits[1];
-    }
-    
-    cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
-
-    ransacHorizon((int*)horizon, &sec_horizon_line);
-
-    // find obstacles using the horizon lines
     int obstacle[IMAGE_WIDTH] = {0};
-    if (sec_horizon_line.quality > sec_horizon_threshold){
-        // Continue with two horizon lines
-        if (best_horizon_line.m > sec_horizon_line.m){
-            findObstacles_2H((int*) obstacle,(int*) horizon, &best_horizon_line, &sec_horizon_line);
-            if (draw){
-                 drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
+    //cout << "best horizon quality:" << best_horizon_line.quality<<endl;
+    // check for secondary horizon
+    if(best_horizon_line.quality<BEST_HORIZON_QUAL_THRESHOLD){
+        horizon_line_t sec_horizon_line;
+        if (best_horizon_line.m > 0){
+            sec_horizon_line.limits[0] = best_horizon_line.limits[1];
+        }
+        else if (best_horizon_line.m < 0) {
+            sec_horizon_line.limits[1] = best_horizon_line.limits[0];
+        }
+        else
+        {
+            sec_horizon_line.limits[0]=best_horizon_line.limits[0];
+            sec_horizon_line.limits[1]=best_horizon_line.limits[1];
+        }
+        
+        //cout << "secondary horizon quality:"<< sec_horizon_line.quality << endl;
+
+        ransacHorizon((int*)horizon, &sec_horizon_line);
+
+        // find obstacles using the horizon lines
+
+        if (sec_horizon_line.quality > sec_horizon_threshold){
+            // Continue with two horizon lines
+            if (best_horizon_line.m > sec_horizon_line.m){
+                findObstacles_2H((int*) obstacle,(int*) horizon, &best_horizon_line, &sec_horizon_line);
+                if (draw){
+                    drawHorizon_2H(img, (int*) obstacle, &best_horizon_line, &sec_horizon_line);
+                }
+            }
+            else {
+                findObstacles_2H((int*) obstacle,(int*) horizon, &sec_horizon_line, &best_horizon_line);
+                if (draw){
+                    drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
+                }
             }
         }
         else {
-            findObstacles_2H((int*) obstacle,(int*) horizon, &sec_horizon_line, &best_horizon_line);
+            // Only use main horizon
+            findObstacles_1H((int*) obstacle,(int*) horizon, &best_horizon_line);
             if (draw){
-                drawHorizon_2H(img, (int*) obstacle, &sec_horizon_line, &best_horizon_line);
+                drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
             }
         }
     }
-    else {
-        // Only use main horizon
+    else
+    {
         findObstacles_1H((int*) obstacle,(int*) horizon, &best_horizon_line);
         if (draw){
             drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
         }
     }
-    
+        
     return NULL;
 }
 
