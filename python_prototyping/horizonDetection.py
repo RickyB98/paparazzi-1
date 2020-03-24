@@ -109,7 +109,7 @@ def followHorizonLeft(edges,p0,y_lim):
                 y = y+2     # if the edge does not continue, revert to last know edge position
                 break
         horizon[y] = x
-        print (y,x);
+        
 
     return y
     
@@ -139,6 +139,7 @@ def followHorizonRight(edges,p0):
                 y = y-2     # if the edge does not continue, revert to last know edge position
                 break
         horizon[y] = x
+        print (y,x)
 
     return y
     
