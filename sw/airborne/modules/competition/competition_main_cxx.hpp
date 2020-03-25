@@ -1,7 +1,0 @@
-#ifndef PAPARAZZI_COMPETITION_MAIN_HPP
-#define PAPARAZZI_COMPETITION_MAIN_HPP
-
-void CompetitionInit();
-void CompetitionLoop();
-
-#endif //PAPARAZZI_COMPETITION_MAIN_HPP

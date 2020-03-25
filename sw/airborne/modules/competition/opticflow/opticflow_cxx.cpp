@@ -1,4 +1,4 @@
-#include "opticflow_cxx.hpp"
+#include "opticflow.h"
 
 #include <iostream>
 

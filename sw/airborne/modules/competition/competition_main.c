@@ -1,5 +1,3 @@
-#include "competition_main_cxx.hpp"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,6 +14,8 @@ extern "C" {
 #include "stdlib.h"
 #include "time.h"
 
+#define ABS(x) (((x) < 0. ? -(x) : (x)))
+
 #define STATE_WAIT_HEADING 0
 #define STATE_CONTINUE 1
 #define STATE_OUT_OF_OBSTACLE_ZONE 2
@@ -24,6 +24,8 @@ extern "C" {
 #define HEADING_RATE_M 1
 
 int current_state = STATE_CONTINUE;
+
+float straight_speed = .7;
 
 int hold = 0;
 
@@ -44,11 +46,11 @@ uint8_t tick = 0;
 void competition_loop() {
   CompetitionLoop();
 
-  NedCoor_f *ned = stateGetPositionNed_f();
-  NedCoor_f *accel = stateGetAccelNed_f();
+  struct NedCoor_f *ned = stateGetPositionNed_f();
+  struct NedCoor_f *accel = stateGetAccelNed_f();
   struct FloatEulers *eulers = stateGetNedToBodyEulers_f();
-  FloatRates *rates = stateGetBodyRates_f();
-
+  struct FloatRates *rates = stateGetBodyRates_f();
+  
   if (!InsideObstacleZone(ned->x, ned->y)) {
     current_state = STATE_OUT_OF_OBSTACLE_ZONE;
   } else if (current_state == STATE_OUT_OF_OBSTACLE_ZONE) {
@@ -67,36 +69,37 @@ void competition_loop() {
     }
 
     setHeading(psi);
-    setSpeed(1.);
+    setSpeed(straight_speed);
   } break;
   case STATE_CONTINUE: {
     // Opticflow (only check when accel < 1e-2)
     float accelY = ACCEL_FLOAT_OF_BFP(accel->y);
     float accelZ = ACCEL_FLOAT_OF_BFP(accel->z);
     if (sqrt(pow(rates->p, 2) + pow(rates->q, 2) + pow(rates->r, 2)) < .1 &&
-        eulers->phi < 1e-1 && accelY < .1 && accelZ < .1) {
+        ABS(eulers->phi) < 1e-1 && ABS(accelY) < .1 && ABS(accelZ) < .1) {
       switch (of_get_suggested_action()) {
       case OF_ACT_STRAIGHT: {
-        setSpeed(1.);
+        setSpeed(straight_speed);
         setHeadingRate(0.);
       } break;
       case OF_ACT_LEFT: {
         fprintf(stderr, "[OF_ACT] Go left\n");
         setHeadingRate(-30 * M_PI / 180.);
         setSpeed(0);
-        hold = 30;
+        hold = 45;
         current_state = STATE_WAIT_HEADING;
       } break;
       case OF_ACT_RIGHT: {
         fprintf(stderr, "[OF_ACT] Go right\n");
         setHeadingRate(30 * M_PI / 180.);
         setSpeed(0);
-        hold = 30;
+        hold = 45;
         current_state = STATE_WAIT_HEADING;
       } break;
       }
     } else {
         fprintf(stderr, "[OF] N/A %d\n", tick++);
+        opticflow_reset();
     }
   } break;
   case STATE_WAIT_HEADING: {

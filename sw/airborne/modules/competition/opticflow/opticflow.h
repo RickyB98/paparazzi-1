@@ -22,4 +22,18 @@ extern uint8_t of_get_suggested_action();
 
 void parse_images();
 
+void opticflow_reset();
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void OpticflowInit();
+void OpticflowLoop();
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif //PAPARAZZI_OPTICFLOW_H

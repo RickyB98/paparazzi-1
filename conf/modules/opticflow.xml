@@ -20,12 +20,11 @@
     <init fun="opticflow_init()" />
     <periodic fun="opticflow_loop()" freq="10" />
     
-    <makefile target="nps|ap">
+    <makefile target="ap|nps">
         <flag name="CXXFLAGS" value="std=c++17" />
         <flag name="CXXFLAGS" value="DCOMPETITION_CAMERA_FRONT=front_camera" />
         <file name="opticflow_cxx.cpp" />
-        <file name="opticflow.cpp" />
-        <file name="opticflow_c.c" />
+        <file name="opticflow.c" />
         <file name="fast_rosten.c" dir="modules/computer_vision/lib/vision/" />
         <file name="lucas_kanade.c" dir="modules/computer_vision/lib/vision/" />
         <file name="linear_flow_fit.c" dir="modules/computer_vision/opticflow/" />
@@ -64,8 +63,5 @@
         <flag name="LDFLAGS" value="lm"/>
         <flag name="LDFLAGS" value="lpthread"/>
         <flag name="LDFLAGS" value="lrt"/>
-        <raw>
-            ap.CXXFLAGS += -DBOARD_CONFIG=\"boards/bebop.h\"
-        </raw>
     </makefile>
 </module>

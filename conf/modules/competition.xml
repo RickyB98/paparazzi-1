@@ -4,7 +4,7 @@
   <doc>
     <description>Competition Module Group 3</description>
   </doc>
-  <depends>opticflow</depends>
+  <!--<depends>opticflow</depends>-->
   <header>
     <file name="competition_main.h"/>
   </header>
@@ -13,11 +13,11 @@
   <makefile target="ap|nps">
     <flag name="CXXFLAGS" value="std=c++17"/>
     <file name="competition_main_cxx.cpp"/>
-    <file name="competition_main.cpp"/>
+    <file name="competition_main.c"/>
   </makefile>
   <makefile target="ap">
     <raw>
-      ap.CXXFLAGS += -DBOARD_CONFIG=\"boards/bebop.h\"
+      ap.CFLAGS += -DBOARD_CONFIG=\"boards/bebop.h\"
     </raw>
   </makefile>
 </module>
