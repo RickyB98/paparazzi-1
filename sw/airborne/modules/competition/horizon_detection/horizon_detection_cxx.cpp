@@ -149,14 +149,14 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     x = p->x;
     y = p->y;
     
-    onFloor = isFloor(img, y, x);
+    onFloor = isFloor(img, x, y);
     
     track.data[y * img->w + x] = 255;
         //cout << "nnnnnn" << endl;
     while (!onFloor && x < img->w)
     {
         x++;
-        onFloor = isFloor(img, y, x);
+        onFloor = isFloor(img, x, y);
         track.data[y * img->w + x] = 255;
     }
     // move up to closest edge
@@ -367,7 +367,7 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 
         // calculate error and quality
         float dx = 0;
-        for (j = 0; j <IMAGE_WIDTH; j++)
+        for (j = first; j <last; j++)
         {
             dx = abs(horizon[j] - m[i] * j - b[i]);
             if (dx < ransac_threshold)
@@ -395,19 +395,37 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
     float local_error;
     int limit[2] = {first, last};
     
-    for (i=first; i<last; i++){
-        local_error = horizon[i] - abs(best_m*i + best_b);
-        if (best_m > 0 && local_error<ransac_threshold){
-            limit[1] = i; //-2; -> what was that for?
+        for (i=first; i<=last; i++){
+        local_error = horizon[i] - best_m*i - best_b;
+        if (best_m > 0 && local_error<ransac_threshold && i<=best_quality+15){
+            limit[1] = i; 
+            
         }
-        else if (best_m < 0 && local_error<ransac_threshold){
-            limit[0] = i; //+2;
-            break;
+        else if (best_m < 0 && local_error<ransac_threshold &&i<=IMAGE_WIDTH-best_quality){
+            limit[0] = i;
+            
         }
         else{
             continue;
         }
     }
+
+
+
+    // for (i=first; i<=last´; i++){
+    //     local_error = horizon[i] - best_m*i - best_b;
+    //     if (best_m > 0 && local_error<ransac_threshold){
+    //         limit[1] = i; 
+            
+    //     }
+    //     else if (best_m < 0 && local_error<ransac_threshold){
+    //         limit[0] = i;
+            
+    //     }
+    //     else{
+    //         continue;
+    //     }
+    // }
 
     best_horizon_line->m = best_m;
     best_horizon_line->b = best_b;
@@ -579,18 +597,22 @@ struct image_t * horizonDetection(struct image_t *img)
     int obstacle[IMAGE_WIDTH] = {0};
     // check for secondary horizon
     horizon_line_t sec_horizon_line;
+    cout<<best_horizon_line.m<<endl;
+    cout<<best_horizon_line.limits[1]<<endl;
     if (best_horizon_line.m > 0){
         sec_horizon_line.limits[0] = best_horizon_line.limits[1];
+        sec_horizon_line.limits[1] = IMAGE_WIDTH;
     }
     else if (best_horizon_line.m < 0) {
         sec_horizon_line.limits[1] = best_horizon_line.limits[0];
+        sec_horizon_line.limits[0] = 0;
     }
     else
     {
         sec_horizon_line.limits[0]=best_horizon_line.limits[0];
         sec_horizon_line.limits[1]=best_horizon_line.limits[1];
     }
-    
+    cout<<sec_horizon_line.limits[0]<<"     "<<sec_horizon_line.limits[1]<<endl;
     ransacHorizon((int*)horizon, &sec_horizon_line);
 
     // find obstacles using the horizon lines
