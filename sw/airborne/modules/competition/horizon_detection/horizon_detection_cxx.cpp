@@ -54,7 +54,7 @@ uint8_t cf_umax = 0;
 uint8_t cf_vmin = 0;
 uint8_t cf_vmax = 0;
 // RANSAC Horizon settings
-bool draw = false;
+bool draw = true;
 uint8_t ransac_threshold = 1;
 uint8_t ransac_iter = 1;
 uint8_t sec_horizon_threshold = 1;
@@ -367,12 +367,9 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 
         // calculate error and quality
         float dx = 0;
-        // PROBLEM: CHANGE TO j<IMAGE_WIDTH CRASHES AFTER A WHILE WITH NO ERROR MESSAGE
         for (j = 0; j <IMAGE_WIDTH; j++)
         {
             dx = abs(horizon[j] - m[i] * j - b[i]);
-            //cout<<"j="<<j<<endl;
-
             if (dx < ransac_threshold)
             {
                 error[i] += dx;
@@ -408,8 +405,6 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
             break;
         }
         else{
-            //limit[0]=best_horizon_line->limits[0];
-            //limit[1]=best_horizon_line->limits[1];
             continue;
         }
     }
