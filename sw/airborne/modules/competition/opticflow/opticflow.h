@@ -16,11 +16,11 @@ extern uint8_t pyramid;
 extern uint8_t fast9_threshold;
 
 struct image_t* store_image(struct image_t* img);
-void draw_current_corners(struct image_t* img);
+void draw_current_corners(struct image_t *img, struct point_t* positive_points, int positive_points_size);
 
 extern uint8_t of_get_suggested_action();
 
-void parse_images();
+void parse_images(struct point_t **positive_points, int* positive_points_size);
 
 void opticflow_reset();
 

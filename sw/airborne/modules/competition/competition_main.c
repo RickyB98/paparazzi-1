@@ -69,7 +69,19 @@ void competition_loop() {
     }
 
     setHeading(psi);
-    setSpeed(straight_speed);
+    float diff = ABS(psi - eulers->psi);
+    
+    while (diff > M_PI) {
+      diff -= 2 * M_PI;
+    }
+    if (ABS(diff) < .1) {
+      setSpeed(0.5);
+      setHeadingRate(0);
+    } else {
+      setSpeed(0);
+      setHeading(psi);
+    }
+    opticflow_reset();
   } break;
   case STATE_CONTINUE: {
     // Opticflow (only check when accel < 1e-2)
