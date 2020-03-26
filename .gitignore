@@ -195,9 +195,15 @@ tests/results/*
 # K-develop
 *.kate-swp
 
+# Datasets
+datasets/*
 sw/ext/pprzlink-bkp/
 
 
 # cmake
 cmake-build-debug/
 CMakeLists.txt
+
+
+# pics
+cnn.png

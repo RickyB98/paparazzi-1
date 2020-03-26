@@ -31,6 +31,9 @@
         <file name="pprz_matrix_decomp_float.c" dir="math/" />
     </makefile>
     <makefile target="nps">
+        <flag name="CXXFLAGS" value="std=c++17"/>
+        <file name="opticflow_cxx.cpp" />
+        <file name="opticflow.c" />
         <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
         <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
         <flag name="LDFLAGS" value="lopencv_world"/>

@@ -25,7 +25,7 @@
                 "/usr/include/x86_64-linux-gnu/",
                 "/usr/include/x86_64-linux-gnu/c++/7/",
                 "${workspaceFolder}/sw/ext/opencv_bebop/opencv/include",
-                "${workspaceFolder}/sw/ext/opencv_bebop/install_arm/include/"
+                "${workspaceFolder}/sw/ext/opencv_bebop/install_pc/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",
