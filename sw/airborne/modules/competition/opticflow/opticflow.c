@@ -29,7 +29,7 @@ extern "C" {
 
 #define ABS(x) (((x) < 0 ? -(x) : (x)))
 
-#define MAX_TRACK 10
+#define MAX_TRACK 30
 
 typedef struct point_tracking_s {
   int count;
@@ -71,8 +71,9 @@ float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 
 uint8_t suggested_action = OF_ACT_STRAIGHT;
 
+
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 15);
+  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 60);
   OpticflowInit();
 }
 
@@ -203,7 +204,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
   for (int i = 0; i < vcc; ++i) {
     int idx = valid_corners_idx[i];
-    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 45) {
+    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 120) {
       tracking[idx].valid = false;
       continue;
     }
@@ -233,8 +234,8 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   // printf("points after: %d\n", vcc);
 
   // OVERRIDE: XFOE AND YFOE CENTER
-  float offset0 = 60;
-  float theta0 = -10 / 180. * M_PI;
+  float offset0 = 65; // 60
+  float theta0 = -10 / 180. * M_PI; // 10/180
 
   struct FloatEulers *eulers = stateGetNedToBodyEulers_f();
   struct NedCoor_f *vel = stateGetSpeedNed_f();
@@ -320,19 +321,24 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
     tx -= dt;
     ty -= dt;
-    float lala = (tx + ty) / 2;
-
+   
     //fprintf(stderr,"x_dist  = %f, y_dist  = %f, mean TTC = %f \n", x_dist, y_dist, lala);
-    if (ABS(y_dist) < .3 && ty > 0 && tx > 0) {
+    if (ABS(y_dist) < .3 && ty > 0 && tx > 0 && ABS(x_dist) < .4) {
       //fprintf(stderr, "y_dist lower than treshold");
       if (first) {
         //fprintf(stderr, "+-+-+-+-+-+-+-+-+-+-+\n");
         first = false;
       }
       //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if ((front_speed * ty < 1. || front_speed * tx < 3.) && to_average >= 10) { // to_average >= 10
+      if ((front_speed * ty < 2.5 || front_speed * tx < 1.5) && to_average >= 15) { // to_average >= 10
         ++close;
         //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
+        if (front_speed * ty < 1.2){
+          fprintf(stderr, "Decision based on ------->> Y \n");
+        }
+        if (front_speed * tx < .5){
+          fprintf(stderr, "Decision based on ------->> X \n");
+        }
         if (close - 1 < *positive_points_size) {
           struct point_t used = tracking[i].flows[tracking[i].count - 1].pos;
           used.x /= (uint32_t)factor;
@@ -346,15 +352,16 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   stop:
     continue;
   }
+  //fprintf(stderr, "Points counted: %d", close);
 
   if (close > 0) {
     if (avg_py > 0) {
       suggested_action = OF_ACT_LEFT;
-      fprintf(stderr, "Average py: %f\n", avg_py);
+      //fprintf(stderr, "Average py: %f\n", avg_py);
       fprintf(stderr, "[OF_ACT] Go left (num: %d, py: %f)\n", close, avg_py);
     } else {
       suggested_action = OF_ACT_RIGHT;
-      fprintf(stderr, "Average py: %f\n", avg_py);
+      //fprintf(stderr, "Average py: %f\n", avg_py);
       fprintf(stderr, "[OF_ACT] Go right (num: %d, py: %f)\n", close, avg_py);
     }
   } else {
