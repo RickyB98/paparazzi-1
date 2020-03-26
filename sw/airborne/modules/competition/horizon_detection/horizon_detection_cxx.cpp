@@ -437,6 +437,7 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 
 void findObstacles_2H(int *obstacles, int *horizon, horizon_line_t *left_horizon, horizon_line_t *right_horizon){
     int horizon_intersect = (int) floor((left_horizon->b-right_horizon->b)/(right_horizon->m-left_horizon->m));
+     cout<<horizon_intersect+1<<"horizon"<<endl;
     findObstacles(obstacles, horizon, left_horizon, 0, horizon_intersect);
     findObstacles(obstacles, horizon, right_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
 }
@@ -448,13 +449,14 @@ void findObstacles_1H(int *obstacles, int *horizon, horizon_line_t *best_horizon
 void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, int limit_left, int limit_right){
     int i;
     int diff;
-    for (i=limit_left; i<= limit_right; i++){
+
+    for (i=Max(0, limit_left); i < Min(IMAGE_WIDTH, limit_right+1); i++){
         diff = (int) round(horizon[i] - horizon_line->m*i - horizon_line->b );
         if (abs(diff) > obstacle_threshold){
             obstacles[i] = horizon[i];
         }
         else{
-            obstacles[i] = -1;
+            obstacles[i]=-1;
             continue;}
     }
 }
@@ -463,6 +465,7 @@ void drawHorizon_2H(struct image_t *img, int *obstacles, horizon_line_t *left_ho
     int horizon_intersect = (int) floor((left_horizon->b-right_horizon->b)/(right_horizon->m-left_horizon->m));
     drawHorizon(img, obstacles, left_horizon, 0, horizon_intersect);
     drawHorizon(img, obstacles, right_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
+   
 }
 
 void drawHorizon_1H(struct image_t *img, int *obstacles, horizon_line_t *best_horizon){
@@ -473,7 +476,7 @@ void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, i
     uint8_t *buffer = (uint8_t*) img->buf;
 
     // Go through all the pixels
-    for (uint16_t y = limit_left; y < limit_right; y++) {
+    for (uint16_t y = Max(0, limit_left); y < Min(IMAGE_WIDTH, limit_right+1); y++) {
         int x = (int) round(horizon->m*y + horizon->b );
         if (x>=img->w || x<0){continue;}
 
@@ -549,7 +552,7 @@ struct image_t * horizonDetection(struct image_t *img)
     int horizon[IMAGE_WIDTH] = {0};
     cout << "PRINT 0.5"<< endl;
     Mat edge_image = image_edges(img);
-    cv::imwrite("cnn.png", edge_image);
+    //cv::imwrite("cnn.png", edge_image);
     while (y < img->h)
     {cout << "PRINT 1"<< endl;
         Dot p;
@@ -654,10 +657,10 @@ struct image_t * horizonDetection(struct image_t *img)
         }
     }
     cout << "PRINT 22"<< endl;
-    if (draw){
-        drawHorizonArray(img, (int*) horizon);
-        cout << "PRINT 21"<< endl;
-    }
+    // if (draw){
+    //     drawHorizonArray(img, (int*) horizon);
+    //     cout << "PRINT 21"<< endl;
+    // }
     return NULL;
 }
 
