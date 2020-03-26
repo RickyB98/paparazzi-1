@@ -9,7 +9,23 @@
                 "limitSymbolsToIncludedHeaders": true
             },
             "includePath": [
-                "${workspaceFolder}"
+                "${workspaceFolder}",
+                "${workspaceFolder}/sw/airborne/",
+                "${workspaceFolder}/sw/include/",
+                "/usr/include/gazebo-9/",
+                "/usr/include/sdformat-6.0/",
+                "/usr/include/",
+                "/usr/local/include/",
+                "/usr/include/linux/",
+                "/usr/include/ignition/common1/",
+                "/usr/include/ignition/fuel_tools1/math4/",
+                "/usr/include/ignition/math4/",
+                "/usr/include/ignition/msgs1/",
+                "/usr/include/ignition/transport4/",
+                "/usr/include/x86_64-linux-gnu/",
+                "/usr/include/x86_64-linux-gnu/c++/7/",
+                "${workspaceFolder}/sw/ext/opencv_bebop/opencv/include",
+                "${workspaceFolder}/sw/ext/opencv_bebop/install_arm/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",

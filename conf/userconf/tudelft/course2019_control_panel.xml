@@ -23,7 +23,7 @@
     <program name="Simulator" command="sw/simulator/pprzsim-launch"/>
     <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
       <arg flag="-ac" constant="@AIRCRAFT"/>
-      <arg flag="sm600.xml"/>
+      <arg flag="x52.xml"/>
     </program>
     <program name="Environment Simulator" command="sw/simulator/gaia"/>
     <program name="NatNet" command="sw/ground_segment/misc/natnet2ivy"/>
@@ -76,7 +76,7 @@
       </program>
       <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
         <arg flag="-ac" constant="@AIRCRAFT"/>
-        <arg flag="sm600.xml"/>
+        <arg flag="x52.xml"/>
         <arg flag="-d 0"/>
       </program>
       <program name="Gazebo"/>
@@ -91,12 +91,39 @@
       </program>
       <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
         <arg flag="-ac" constant="@AIRCRAFT"/>
-        <arg flag="sm600.xml"/>
+        <arg flag="x52.xml"/>
         <arg flag="-d 0"/>
       </program>
       <program name="NatNet" command="sw/ground_segment/misc/natnet2ivy">
         <arg flag="-ac 9999" constant="@AC_ID"/>
       </program>
     </session>
+    <session name="Simulation - Gazebo - UDP">
+      <program name="Simulator">
+        <arg flag="-a" constant="@AIRCRAFT"/>
+        <arg flag="-t" constant="nps"/>
+      </program>
+      <program name="Data Link">
+        <arg flag="-udp"/>
+	<arg flag="-udp_broadcast"/>
+	<arg flag="-udp_broadcast_addr" constant="192.168.2.255"/>
+        <arg flag="-ping_period" constant="100"/>
+      </program>
+      <program name="Server">
+        <arg flag="-n"/>
+      </program>
+      <program name="GCS">
+        <arg flag="-speech"/>
+        <arg flag="-maximize"/>
+        <arg flag="-center_ac"/>
+        <arg flag="-mercator"/>
+        <arg flag="-maps_no_http"/>
+        <arg flag="-track_size" constant="200"/>
+        <arg flag="-zoom" constant="40."/>
+      </program>
+      <program name="Gazebo"/>
+    </session>
+
+
   </section>
 </control_panel>

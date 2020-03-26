@@ -1,0 +1,26 @@
+<?xml version='1.0'?>
+<sdf version='1.4'>
+  <model name="p_pole3">
+    <static>true</static>
+    <pose>0 0 0 0 0 0</pose>
+
+    <link name="p_pole3">
+      <pose>0 0 0 0 0 0</pose>
+      <visual name="p_pole3">
+        <geometry>
+          <mesh>
+            <uri>model://p_pole3/p_pole3.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="pole_collision">
+        <geometry>
+          <mesh>
+            <uri>model://p_pole3/p_pole3.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+
+  </model>
+</sdf>

@@ -362,13 +362,18 @@ void extract_information_from_parameters(float *parameters_u, float *parameters_
   // the FoE is the point where these 2 lines intersect (flow = (0,0))
   // x:
   float denominator = parameters_v[0] * parameters_u[1] - parameters_u[0] * parameters_v[1];
-  if (abs(denominator) > 1E-5) {
+  //fprintf(stderr, "[PARAMS] u: %f, %f, %f - v: %f, %f, %f\n", 
+  //parameters_u[0], parameters_u[1], parameters_u[2], parameters_v[0], parameters_v[1], parameters_v[2]);
+  //fprintf(stderr, "[DENOM] %f\n", denominator);
+  //if (abs(denominator) > 0) {
+  //  fprintf(stderr, "[DENOM] IN IF X\n");
     info->focus_of_expansion_x = ((parameters_u[2] * parameters_v[1] - parameters_v[2] * parameters_u[1]) / denominator);
-  } else { info->focus_of_expansion_x = 0.0f; }
+  //} else { info->focus_of_expansion_x = 0.0f; }
   // y:
   denominator = parameters_u[1];
-  if (abs(denominator) > 1E-5) {
+  //if (abs(denominator) > 0) {
+  //  fprintf(stderr, "[DENOM] IN IF Y\n");
     info->focus_of_expansion_y = (-(parameters_u[0] * (info->focus_of_expansion_x) + parameters_u[2]) / denominator);
-  } else { info->focus_of_expansion_y = 0.0f; }
+  //} else { info->focus_of_expansion_y = 0.0f; }
 }
 

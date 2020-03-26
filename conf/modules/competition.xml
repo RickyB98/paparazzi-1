@@ -4,15 +4,21 @@
   <doc>
     <description>Competition Module Group 3</description>
   </doc>
+  <depends>opticflow</depends>
   <header>
     <file name="competition_main.h"/>
   </header>
   <init fun="competition_init()"/>
-  <periodic fun="competition_loop()" freq="10"/>
-  <makefile target="nps">
+  <periodic fun="competition_loop()" freq="30"/>
+  <makefile target="ap|nps">
     <flag name="CXXFLAGS" value="std=c++17"/>
     <file name="competition_main_cxx.cpp"/>
-    <file name="competition_main.cpp"/>
+    <file name="competition_main.c"/>
+  </makefile>
+  <makefile target="ap">
+    <raw>
+      ap.CFLAGS += -DBOARD_CONFIG=\"boards/bebop.h\"
+    </raw>
   </makefile>
 </module>
 

@@ -195,6 +195,9 @@ tests/results/*
 # K-develop
 *.kate-swp
 
+sw/ext/pprzlink-bkp/
+
+
 # cmake
 cmake-build-debug/
 CMakeLists.txt

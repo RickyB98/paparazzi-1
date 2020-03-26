@@ -1,12 +1,11 @@
-#include "opticflow_cxx.hpp"
+#include "opticflow.h"
 
 #include <iostream>
-#include <modules/computer_vision/cv.h>
 
-void OpticflowInit() {
-
+void OpticflowInit()
+{
 }
 
-void OpticflowLoop() {
-
+void OpticflowLoop()
+{
 }

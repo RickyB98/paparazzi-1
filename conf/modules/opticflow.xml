@@ -4,33 +4,64 @@
     <doc>
         <description>Opticflow</description>
     </doc>
+    <settings>
+        <dl_settings>
+            <dl_settings NAME="OPTICFLOW">
+                <dl_setting var="max_points" min="5" step="1" max="200" shortname="max_points" type="uint8" persistent="true" />
+                <dl_setting var="pyramid" min="0" step="1" max="5" shortname="pyramid" type="uint8" persistent="true" />
+                <dl_setting var="reset_below_points" min="5" step="1" max="100" shortname="reset_below" type="uint8" persistent="true" />
+                <dl_setting var="fast9_threshold" min="1" step="1" max="100" shortname="fast9_threshold" type="uint8" persistent="true" />
+            </dl_settings>
+        </dl_settings>
+    </settings>
     <header>
         <file name="opticflow.h" />
     </header>
     <init fun="opticflow_init()" />
-    <periodic fun="opticflow_loop()" freq="10"/>
-    <makefile target="nps">
-        <flag name="CXXFLAGS" value="std=c++17"/>
+    <periodic fun="opticflow_loop()" freq="10" />
+    
+    <makefile target="ap|nps">
+        <flag name="CXXFLAGS" value="std=c++17" />
+        <flag name="CXXFLAGS" value="DCOMPETITION_CAMERA_FRONT=front_camera" />
         <file name="opticflow_cxx.cpp" />
-        <file name="opticflow.cpp" />
+        <file name="opticflow.c" />
+        <file name="fast_rosten.c" dir="modules/computer_vision/lib/vision/" />
+        <file name="lucas_kanade.c" dir="modules/computer_vision/lib/vision/" />
+        <file name="linear_flow_fit.c" dir="modules/computer_vision/opticflow/" />
+        <file name="pprz_matrix_decomp_float.c" dir="math/" />
+    </makefile>
+    <makefile target="nps">
         <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
-        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib" />
-        <flag name="LDFLAGS" value="lopencv_world" />
-        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib" />
-        <flag name="LDFLAGS" value="llibprotobuf" />
-        <flag name="LDFLAGS" value="lquirc" />
-        <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu" />
-        <flag name="LDFLAGS" value="ljpeg" />
-        <flag name="LDFLAGS" value="lpng" />
-        <flag name="LDFLAGS" value="ltiff" />
-        <flag name="LDFLAGS" value="lgstbase-1.0" />
-        <flag name="LDFLAGS" value="lgstreamer-1.0" />
-        <flag name="LDFLAGS" value="lgobject-2.0" />
-        <flag name="LDFLAGS" value="lglib-2.0" />
-        <flag name="LDFLAGS" value="lz" />
-        <flag name="LDFLAGS" value="ldl" />
-        <flag name="LDFLAGS" value="lm" />
-        <flag name="LDFLAGS" value="lpthread" />
-        <flag name="LDFLAGS" value="lrt" />
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
+        <flag name="LDFLAGS" value="lopencv_world"/>
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib"/>
+        <flag name="LDFLAGS" value="llibprotobuf"/>
+        <flag name="LDFLAGS" value="lquirc"/>
+        <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu"/>
+        <flag name="LDFLAGS" value="ljpeg"/>
+        <flag name="LDFLAGS" value="lpng"/>
+        <flag name="LDFLAGS" value="ltiff"/>
+        <flag name="LDFLAGS" value="lz"/>
+        <flag name="LDFLAGS" value="ldl"/>
+        <flag name="LDFLAGS" value="lm"/>
+        <flag name="LDFLAGS" value="lpthread"/>
+        <flag name="LDFLAGS" value="lrt"/>
+    </makefile>
+    <makefile target="ap">
+        <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/include" />
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/lib"/>
+        <flag name="LDFLAGS" value="lopencv_world"/>
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/share/OpenCV/3rdparty/lib"/>
+        <flag name="LDFLAGS" value="llibprotobuf"/>
+        <flag name="LDFLAGS" value="llibjpeg-turbo"/>
+        <flag name="LDFLAGS" value="llibpng"/>
+        <flag name="LDFLAGS" value="llibtiff"/>
+        <flag name="LDFLAGS" value="lzlib"/>
+        <flag name="LDFLAGS" value="ltegra_hal"/>
+        <flag name="LDFLAGS" value="lquirc"/>
+        <flag name="LDFLAGS" value="ldl"/>
+        <flag name="LDFLAGS" value="lm"/>
+        <flag name="LDFLAGS" value="lpthread"/>
+        <flag name="LDFLAGS" value="lrt"/>
     </makefile>
 </module>
