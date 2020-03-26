@@ -100,7 +100,6 @@ int followHorizonRight(cv::Mat *edge_image, Dot *p, int *horizon);
 int followHorizonLeft(cv::Mat *edge_image, Dot *p, int y_lim, int *horizon);
 bool isFloor(struct image_t *img, int x, int y);
 void findHorizonCandidate(struct image_t *img, cv::Mat *edge_image, Dot *p);
-int findBestHeadingDirection(int* obstacles);
 
 void HorizonDetectionInit();
 void HorizonDetectionLoop();

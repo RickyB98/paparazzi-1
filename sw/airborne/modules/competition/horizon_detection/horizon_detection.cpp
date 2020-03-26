@@ -24,11 +24,9 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     }
 
     int horizon_a[IMAGE_WIDTH] = {0};
-    printf("getting Horizon Array...\n");
     getHorizonArray(img, (int*) horizon_a);
 
     horizon_line_t best_horizon_l, sec_horizon_l;
-    printf("calculating Horizon...\n");
     ransacHorizon((int*)horizon_a, &best_horizon_l, 0, IMAGE_WIDTH-1);
     if (best_horizon_l.m > 0){
         ransacHorizon((int*)horizon_a, &sec_horizon_l, best_horizon_l.limits[1], IMAGE_WIDTH-1);
@@ -39,18 +37,16 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     else{
         // Don't calculate a second horizon
     }
-    printf("horizonline 1 is : m=%f, quality=%d\n", best_horizon_l.m, best_horizon_l.quality);
-    printf("horizonline 2 is : m=%f, quality=%d\n", sec_horizon_l.m, sec_horizon_l.quality);
+
     int obstacles_a[IMAGE_WIDTH] = {0};
-    printf("Looking for obstacles...\n");
+
     findObstacles_2H((int*) obstacles_a, (int*) horizon_a, &best_horizon_l, &sec_horizon_l);
-    printf("obstacles[10] is %d\n", obstacles_a[10]);
+
     pthread_mutex_lock(&obstacle_mutex);
     memcpy(gl_obstacles, obstacles_a, sizeof(int)*IMAGE_WIDTH);
     pthread_mutex_unlock(&obstacle_mutex);
 
     if (draw){
-        printf("Drawing the Horizon...\n");
         drawHorizon_2H(img, (int*) obstacles_a, &best_horizon_l, &sec_horizon_l);
     }
     return NULL;
@@ -66,7 +62,57 @@ void horizon_detection_loop() {
     if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED){
         return;
     }
+    int local_obstacles[IMAGE_WIDTH] = {0};
+    pthread_mutex_lock(&obstacle_mutex);
+    memcpy(local_obstacles, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
+    pthread_mutex_unlock(&obstacle_mutex);
+
+    int bestHeading = findBestHeadingDirection(int* local_obstacles);
+
     HorizonDetectionLoop();
+}
+
+
+int findBestHeadingDirection(int* obstacles){
+    bool safe_section = false;
+    int best_first = 0;
+    int best_last = 0;
+    int best_count = 0;
+    int current_first = 0;
+    int current_count = 0;
+    int i;
+    for(i=0;i<IMAGE_WIDTH;i++){
+        if(safe_section){
+            if (obstacles[i]<0){
+                // continuing safe section
+                current_count++;
+            }
+            else{
+                // safe section ended
+                safe_section = false;
+                if (current_count>best_count){
+                    best_first = current_first;
+                    best_last = i-1;
+                    best_count = current_count;
+                }
+            }
+        }
+        else{
+            if (obstacles[i]<0){
+                // entering a safe section
+                safe_section = true;
+                current_first = i;
+                current_count = 1;
+            }
+        }
+    }
+    if(safe_section && current_count>best_count){
+        // last point of the array was safe, and it was the best section
+        best_first = current_first;
+        best_last = i;
+    }
+    // return center pixel of safe section
+    return (int)(best_last-best_first)/2;
 }
 
 #ifdef __cplusplus
