@@ -583,6 +583,13 @@ void getHorizonArray(struct image_t *img, int *horizon){
 
 full_horizon_t mergeHorizonLines(horizon_line_t *horizon1, horizon_line_t *horizon2){
     full_horizon_t fullHorizon;
+
+    fullHorizon.isCompound = false;
+    fullHorizon.left = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}};
+    fullHorizon.right = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}};
+    fullHorizon.main = &fullHorizon.left;
+    fullHorizon.intersect = 0;
+    
     // order left/right
     if(horizon1->m > horizon2->m){
         fullHorizon.left = *horizon1;

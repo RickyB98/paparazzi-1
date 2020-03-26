@@ -3,6 +3,8 @@ extern "C" {
 #endif
 
 #include "horizon_detection.h"
+
+#include <stdio.h>
 #include "modules/computer_vision/cv.h"
 
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
@@ -56,7 +58,8 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     int horizon_a[IMAGE_WIDTH] = {0};
     getHorizonArray(img, (int*) horizon_a);
 
-    horizon_line_t best_horizon_l, sec_horizon_l;
+    horizon_line_t best_horizon_l = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}}, sec_horizon_l = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}};
+    
     ransacHorizon((int*)horizon_a, &best_horizon_l, 0, IMAGE_WIDTH-1);
     if (best_horizon_l.m > 0){
         ransacHorizon((int*)horizon_a, &sec_horizon_l, best_horizon_l.limits[1], IMAGE_WIDTH-1);
@@ -89,6 +92,13 @@ struct image_t * horizon_detection_callback(struct image_t *img){
 void horizon_detection_init() {
     HorizonDetectionInit();
     
+    gl_fullHorizon.isCompound = false;
+    horizon_line_t init = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}};
+    gl_fullHorizon.left = init;
+    gl_fullHorizon.right = init;
+    gl_fullHorizon.main = &gl_fullHorizon.left;
+    gl_fullHorizon.intersect = 0;
+
     // Default values floor filter settings
     cf_ymin = HORIZON_DETECTION_CF_YMIN;
     cf_ymax = HORIZON_DETECTION_CF_YMAX;
