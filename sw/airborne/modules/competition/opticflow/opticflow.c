@@ -47,8 +47,8 @@ uint16_t ret_corners_length = 0;
 // Telemetry
 uint8_t max_points = 150;
 uint8_t pyramid = 2;
-uint8_t reset_below_points = 10;
-uint8_t fast9_threshold = 45;
+uint8_t reset_below_points = 20;
+uint8_t fast9_threshold = 15;
 
 float factor = 2000.;
 
@@ -56,7 +56,7 @@ struct point_t *ret_corners;
 
 point_tracking_t *tracking;
 
-int vcc = 0;
+uint16_t vcc = 0;
 
 bool firstRun = true;
 bool reset = false;
@@ -93,25 +93,29 @@ struct image_t *store_image(struct image_t *img) {
   img2->pprz_ts = img->pprz_ts;
   img2->ts = img->ts;
   img2->eulers = img->eulers;
-
-  struct point_t* positive_points = malloc(50 * sizeof(struct point_t));
-  int positive_points_size = 50;
-  parse_images((struct point_t**) &positive_points, &positive_points_size);
-  draw_current_corners(img, (struct point_t*) positive_points, positive_points_size);
+  
+  int positive_points_size = 30;
+  struct point_t *positive_points = malloc(positive_points_size * sizeof(struct point_t));
+  
+  parse_images((struct point_t **)&positive_points, &positive_points_size);
+  draw_current_corners(img, (struct point_t *)positive_points,
+                       positive_points_size);
   free(positive_points);
   return img;
 }
 
-void draw_current_corners(struct image_t *img, struct point_t* positive_points, int positive_points_size) {
+void draw_current_corners(struct image_t *img, struct point_t *positive_points,
+                          int positive_points_size) {
   for (int i = 0; i < num_corners; ++i) {
-    if (!tracking[i].valid) continue;
+    if (!tracking[i].valid)
+      continue;
     struct point_t p = ret_corners[i];
 
     for (int dx = -2; dx <= 2; ++dx) {
       for (int dy = -2; dy <= 2; ++dy) {
-        uint16_t x = Max(0, Min(img->w - 1, p.x + dx));
-        uint16_t y = Max(0, Min(img->h - 1, p.y + dy));
-        uint8_t *yp = &(img->buf[y * 2 * img->w + 2 * x + 1]);
+        uint16_t x = Min(img->w - 1, p.x + dx);
+        uint16_t y = Min(img->h - 1, p.y + dy);
+        uint8_t *yp = (uint8_t *)&(img->buf[y * 2 * img->w + 2 * x + 1]);
         *yp = 255;
       }
     }
@@ -119,44 +123,54 @@ void draw_current_corners(struct image_t *img, struct point_t* positive_points, 
   for (int i = 0; i < positive_points_size; ++i) {
     for (int dx = -2; dx <= 2; ++dx) {
       for (int dy = -2; dy <= 2; ++dy) {
-        uint16_t x = Max(0, Min(img->w - 1, positive_points[i].x + dx));
-        uint16_t y = Max(0, Min(img->h - 1, positive_points[i].y + dy));
-        uint8_t *vp = &(img->buf[y * 2 * img->w + 2 * x]);
+        uint16_t x = Min(img->w - 1, positive_points[i].x + dx);
+        uint16_t y = Min(img->h - 1, positive_points[i].y + dy);
+        uint8_t *vp = (uint8_t *)&(img->buf[y * 2 * img->w + 2 * x]);
         *vp = 255;
       }
     }
   }
   for (int dx = -2; dx <= 2; ++dx) {
     for (int dy = -2; dy <= 2; ++dy) {
-      // uint16_t x = Max(0, Min(img->w - 1, xfoeTot + dx));
-      // uint16_t y = Max(0, Min(img->h - 1, yfoeTot + dy));
-      uint16_t x = Max(0, Min(img->w - 1, xfoe / factor + dx));
-      uint16_t y = Max(0, Min(img->h - 1, yfoe / factor + dy));
-      uint8_t *up = &(img->buf[y * 2 * img->w + 2 * x]);
+      uint16_t x = Min(img->w - 1, xfoe / factor + dx);
+      uint16_t y = Min(img->h - 1, yfoe / factor + dy);
+      uint8_t *up = (uint8_t *)&(img->buf[y * 2 * img->w + 2 * x]);
       *up = 255;
     }
   }
 }
 
-void parse_images(struct point_t **positive_points, int* positive_points_size) {
+void parse_images(struct point_t **positive_points, int *positive_points_size) {
   if (img1 == NULL)
     return;
 
-  if (firstRun || vcc < reset_below_points || reset)
-  {
-    free(ret_corners);
-    free(tracking);
+  if (firstRun || vcc < reset_below_points || reset) {
+    if (ret_corners != NULL) {
+      free(ret_corners);
+      ret_corners = NULL;
+    }
+    if (tracking != NULL) {
+      free(tracking);
+      tracking = NULL;
+    }
     ret_corners_length = 20;
     ret_corners = malloc(ret_corners_length * sizeof(struct point_t));
     num_corners = 0;
     firstRun = false;
     reset = false;
-    fast9_detect(img1, fast9_threshold, 10, 30, 30, &num_corners,
+    fast9_detect(img1, fast9_threshold, 20, 30, 30, &num_corners,
                  &ret_corners_length, &ret_corners, NULL);
+    printf("done fast9\n");
+    if (num_corners <= 0) {
+      reset = true;
+      return;
+    }
+
     tracking = malloc(num_corners * sizeof(point_tracking_t));
-    //num_corners = ret_corners_length;
-    printf("max points: %d, ret_corners_length: %d, num_corners: %d\n", max_points, ret_corners_length, num_corners);
-  
+    // num_corners = ret_corners_length;
+    printf("max points: %d, ret_corners_length: %d, num_corners: %d\n",
+           max_points, ret_corners_length, num_corners);
+
     for (int i = 0; i < num_corners; ++i) {
       ret_corners[i].count = 0;
       tracking[i].count = 0;
@@ -176,16 +190,16 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
     }
   }
 
-  //printf("points before: %d, ", num_corners);
+  // printf("points before: %d, ", num_corners);
   struct flow_t *flow =
-      opticFlowLK(img2, img1, valid_corners, &vcc, 5,
-                  (uint16_t)factor, 50, 250, max_points, pyramid, 1);
+      opticFlowLK(img2, img1, valid_corners, &vcc, 5, (uint16_t)factor, 50, 250,
+                  max_points, pyramid, 1);
 
   // updates ret_corners positions after detecting flow
 
   for (int i = 0; i < vcc; ++i) {
     int idx = valid_corners_idx[i];
-    if (flow[i].error == LARGE_FLOW_ERROR) {
+    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 30) {
       tracking[idx].valid = false;
       continue;
     }
@@ -212,7 +226,7 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
   free(valid_corners);
   free(valid_corners_idx);
 
-  //printf("points after: %d\n", vcc);
+  // printf("points after: %d\n", vcc);
 
   // OVERRIDE: XFOE AND YFOE CENTER
   float offset0 = 60;
@@ -221,6 +235,10 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
   struct FloatEulers *eulers = stateGetNedToBodyEulers_f();
   struct NedCoor_f *vel = stateGetSpeedNed_f();
   float front_speed = sqrt(pow(vel->x, 2) + pow(vel->y, 2) + pow(vel->z, 2));
+  if (stateIsSideslipValid()) {
+    front_speed *= cos(stateGetSideslip_f());
+  }
+  printf("front_speed: %f\n", front_speed);
 
   xfoe = (120 + offset0 + (eulers->theta - theta0) * offset0 / theta0) * factor;
   yfoe = 260 * factor;
@@ -243,7 +261,7 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
     float ty = 0;
 
     float dt = 0;
-    //printf("tracking[%d].count = %d\n", i, tracking[i].count);
+    // printf("tracking[%d].count = %d\n", i, tracking[i].count);
 
     int to_average = 0;
     for (int k = 0; k < tracking[i].count; ++k) {
@@ -265,7 +283,7 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
       v /= factor;
       dt /= 1e6;
 
-      if (ABS(u) < 1e-3 || ABS(v) < 1e-3) {
+      if (ABS(u) < 1e-2 || ABS(v) < 1e-2) {
         continue;
       }
       if (u * px < 0 || v * py < 0) {
@@ -274,8 +292,9 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
 
       ++to_average;
       float magic = front_speed * dt;
-      //printf("px0: %f, px: %f, py0: %f, py: %f, k: %d, dt: %f, magic: %f, speed: %f\n", px0, px, py0, py, k, dt, magic, front_speed);
-      
+      // printf("px0: %f, px: %f, py0: %f, py: %f, k: %d, dt: %f, magic: %f,
+      // speed: %f\n", px0, px, py0, py, k, dt, magic, front_speed);
+
       x_dist += px0 * px * magic / 120. / u;
       y_dist += py0 * py * magic / 260. / v;
 
@@ -284,7 +303,7 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
     }
 
     if (to_average == 0) {
-      //printf("Nothing to average.\n");
+      // printf("Nothing to average.\n");
       goto stop;
       return;
     }
@@ -304,19 +323,20 @@ void parse_images(struct point_t **positive_points, int* positive_points_size) {
         first = false;
       }
       printf("[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if (ty < 4 && to_average >= 4) {
+      if (front_speed * ty < 1. && to_average >= 10) {
         ++close;
         if (close - 1 < *positive_points_size) {
           struct point_t used = tracking[i].flows[tracking[i].count - 1].pos;
-          used.x /= (uint32_t) factor;
-          used.y /= (uint32_t) factor;
+          used.x /= (uint32_t)factor;
+          used.y /= (uint32_t)factor;
           (*positive_points)[close - 1] = used;
         }
 
         avg_py += (y_dist >= 0 ? 1 : -1) * 1 / (1 + 2 * ABS(y_dist));
       }
     }
-    stop: continue;
+  stop:
+    continue;
   }
 
   if (close > 0) {

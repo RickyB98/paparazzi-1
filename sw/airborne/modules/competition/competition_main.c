@@ -68,18 +68,17 @@ void competition_loop() {
       psi += 2 * M_PI;
     }
 
-    setHeading(psi);
     float diff = ABS(psi - eulers->psi);
     
     while (diff > M_PI) {
       diff -= 2 * M_PI;
     }
-    if (ABS(diff) < .1) {
-      setSpeed(0.5);
+    if (ABS(diff) < .3) {
+      setSpeed(0.2);
       setHeadingRate(0);
     } else {
       setSpeed(0);
-      setHeading(psi);
+      setHeadingRate(M_PI_2);
     }
     opticflow_reset();
   } break;
@@ -88,7 +87,7 @@ void competition_loop() {
     float accelY = ACCEL_FLOAT_OF_BFP(accel->y);
     float accelZ = ACCEL_FLOAT_OF_BFP(accel->z);
     if (sqrt(pow(rates->p, 2) + pow(rates->q, 2) + pow(rates->r, 2)) < .1 &&
-        ABS(eulers->phi) < 1e-1 && ABS(accelY) < .1 && ABS(accelZ) < .1) {
+        ABS(eulers->phi) < 1e-1 && (!stateIsSideslipValid() || ABS(stateGetSideslip_f()) < 1e-1)) {
       switch (of_get_suggested_action()) {
       case OF_ACT_STRAIGHT: {
         setSpeed(straight_speed);
