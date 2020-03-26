@@ -120,6 +120,7 @@ void draw_current_corners(struct image_t *img, struct point_t *positive_points,
       }
     }
   }
+  printf("positive_points_size: %d\n", positive_points_size);
   for (int i = 0; i < positive_points_size; ++i) {
     for (int dx = -2; dx <= 2; ++dx) {
       for (int dy = -2; dy <= 2; ++dy) {
@@ -141,8 +142,10 @@ void draw_current_corners(struct image_t *img, struct point_t *positive_points,
 }
 
 void parse_images(struct point_t **positive_points, int *positive_points_size) {
-  if (img1 == NULL)
+  if (img1 == NULL) {
+    *positive_points_size = 0;
     return;
+  }
 
   if (firstRun || vcc < reset_below_points || reset) {
     if (ret_corners != NULL) {
@@ -163,6 +166,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     printf("done fast9\n");
     if (num_corners <= 0) {
       reset = true;
+      *positive_points_size = 0;
       return;
     }
 
