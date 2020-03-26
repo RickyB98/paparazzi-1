@@ -8,9 +8,42 @@ extern "C" {
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 
 
-// Global variables
+// local function declarations
+struct image_t * horizon_detection_callback(struct image_t *img);
+int findBestHeadingDirection(int* obstacles);
+int findCenterHorizonHeight(full_horizon_t *fullHorizon);
+
+// Global variables and get functions
 int gl_obstacles[IMAGE_WIDTH] = {0};
 static pthread_mutex_t obstacle_mutex;
+
+full_horizon_t gl_fullHorizon;
+static pthread_mutex_t horizon_mutex;
+
+void hdGetObstacleArray(int* obstacleArray){
+    pthread_mutex_lock(&obstacle_mutex);
+    memcpy(obstacleArray, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
+    pthread_mutex_unlock(&obstacle_mutex);
+}
+
+int hdGetBestHeading(void){
+    int loc_obstacles[IMAGE_WIDTH] = {0};
+    pthread_mutex_lock(&obstacle_mutex);
+    memcpy(loc_obstacles, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
+    pthread_mutex_unlock(&obstacle_mutex);
+
+    return findBestHeadingDirection((int*) loc_obstacles);
+}
+
+int hdGetHorizonHeight(void){
+    full_horizon_t local_horizon;
+    pthread_mutex_lock(&horizon_mutex);
+    memcpy(&local_horizon,&gl_fullHorizon,sizeof(full_horizon_t));
+    pthread_mutex_unlock(&horizon_mutex);
+
+    return findCenterHorizonHeight(&local_horizon);
+}
+
 
 struct image_t * horizon_detection_callback(struct image_t *img){
     if (img->h != IMAGE_WIDTH){
@@ -34,17 +67,21 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     else{
         // Don't calculate a second horizon
     }
+    // calculate and save full horizon
+    full_horizon_t fullHorizon = mergeHorizonLines(&best_horizon_l, &sec_horizon_l);
+    pthread_mutex_lock(&horizon_mutex);
+    memcpy(&gl_fullHorizon, &fullHorizon, sizeof(fullHorizon));
+    pthread_mutex_unlock(&horizon_mutex);
 
+    // calculate and save obstacles
     int obstacles_a[IMAGE_WIDTH] = {0};
-
-    findObstacles_2H((int*) obstacles_a, (int*) horizon_a, &best_horizon_l, &sec_horizon_l);
-
+    findObstaclesFullHorizon((int*) obstacles_a, (int*) horizon_a, &fullHorizon);
     pthread_mutex_lock(&obstacle_mutex);
     memcpy(gl_obstacles, obstacles_a, sizeof(int)*IMAGE_WIDTH);
     pthread_mutex_unlock(&obstacle_mutex);
 
     if (draw){
-        drawHorizon_2H(img, (int*) obstacles_a, &best_horizon_l, &sec_horizon_l);
+        drawFullHorizon(img, (int*) obstacles_a, &fullHorizon);
     }
     return NULL;
 }
@@ -67,20 +104,18 @@ void horizon_detection_init() {
     obstacle_threshold = HORIZON_DETECTION_OBSTACLE_THRESHOLD;
     
     cv_add_to_device(&COMPETITION_CAMERA_FRONT, horizon_detection_callback, 5);
+
     pthread_mutex_init(&obstacle_mutex, NULL);
+    pthread_mutex_init(&horizon_mutex, NULL);
 }
 
 void horizon_detection_loop() {
     if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED){
         return;
     }
-    int local_obstacles[IMAGE_WIDTH] = {0};
-    pthread_mutex_lock(&obstacle_mutex);
-    memcpy(local_obstacles, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
-    pthread_mutex_unlock(&obstacle_mutex);
-
-    int bestHeading = findBestHeadingDirection((int*) local_obstacles);
-    printf("best heading is %d\n", bestHeading);
+    int bestHeading = hdGetBestHeading();
+    int centerHeight = hdGetHorizonHeight();
+    printf("best heading: %d, horizon height: %d\n", bestHeading,centerHeight);
     HorizonDetectionLoop();
 }
 
@@ -125,6 +160,25 @@ int findBestHeadingDirection(int* obstacles){
     }
     // return center pixel of safe section
     return (int)(best_last-best_first)/2;
+}
+
+int findCenterHorizonHeight(full_horizon_t *fullHorizon){
+    int height = 0;
+    int y = (int) IMAGE_WIDTH/2;
+    if (fullHorizon->isCompound){
+        if (fullHorizon->intersect > y){
+            height = fullHorizon->left.m*y + fullHorizon->left.b;
+        }
+        else {
+            height = fullHorizon->right.m*y + fullHorizon->right.b;
+        }
+        
+    }
+    else{
+        height = fullHorizon->main->m*y + fullHorizon->main->b;
+    }
+    
+    return height;
 }
 
 #ifdef __cplusplus

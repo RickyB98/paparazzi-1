@@ -50,11 +50,9 @@ uint8_t sec_horizon_threshold = 1;
 uint8_t obstacle_threshold = 1;
 
 // Global variables
-enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int global_obstacle[IMAGE_WIDTH] = {0};
-static pthread_mutex_t obstacle_mutex;
-float max_speed = 0.5f;
-float heading_change_rate = 20.0f * M_PI/180.0f;
+//enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
+//float max_speed = 0.5f;
+//float heading_change_rate = 20.0f * M_PI/180.0f;
 
 Mat image_edges(struct image_t *img)
 {
@@ -429,41 +427,16 @@ void ransacHorizon(int *horizon_array, horizon_line_t *best_horizon_line, int li
     
 }
 
-void findObstacles_2H(int *obstacles, int *horizon, horizon_line_t *horizon1, horizon_line_t *horizon2){
-    horizon_line_t *best_horizon, *sec_horizon;
-    if (horizon1->quality > horizon2->quality){
-        best_horizon = horizon1;
-        sec_horizon = horizon2;
+void findObstaclesFullHorizon(int *obstacleArray, int *horizonArray, full_horizon_t *fullHorizon){
+    if(fullHorizon->isCompound){
+        findObstacles(obstacleArray, horizonArray, &fullHorizon->left, 0, fullHorizon->intersect);
+        findObstacles(obstacleArray, horizonArray, &fullHorizon->right, fullHorizon->intersect+1, IMAGE_WIDTH-1);
     }
-    else{
-        best_horizon = horizon2;
-        sec_horizon = horizon1;
+    else
+    {
+        findObstacles(obstacleArray, horizonArray, fullHorizon->main, 0, IMAGE_WIDTH-1);
     }
-
-    if (sec_horizon->quality < sec_horizon_threshold || best_horizon->m == sec_horizon->m){
-        // second horizon bad quality or parallel
-        findObstacles_1H(obstacles, horizon, best_horizon);
-    }
-    else{
-        int horizon_intersect = (int) floor((best_horizon->b-sec_horizon->b)/(sec_horizon->m-best_horizon->m));
-        if (horizon_intersect < 0 || horizon_intersect > IMAGE_WIDTH){
-            // intersect outside image
-            findObstacles_1H(obstacles, horizon, best_horizon);
-        }
-
-        if(best_horizon->m > sec_horizon->m){
-            findObstacles(obstacles, horizon, best_horizon, 0, horizon_intersect);
-            findObstacles(obstacles, horizon, sec_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
-        }
-        else{
-            findObstacles(obstacles, horizon, sec_horizon, 0, horizon_intersect);
-            findObstacles(obstacles, horizon, best_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
-        }
-    }
-}
-
-void findObstacles_1H(int *obstacles, int *horizon, horizon_line_t *horizon_line){
-    findObstacles(obstacles, horizon, horizon_line, 0, IMAGE_WIDTH-1);
+    
 }
 
 void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, int limit_left, int limit_right){
@@ -481,41 +454,16 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
     }
 }
 
-void drawHorizon_2H(struct image_t *img, int *obstacles_array, horizon_line_t *horizon1, horizon_line_t *horizon2){
-    horizon_line_t *best_horizon, *sec_horizon;
-    if (horizon1->quality > horizon2->quality){
-        best_horizon = horizon1;
-        sec_horizon = horizon2;
+void drawFullHorizon(struct image_t *img, int *obstacles_array, full_horizon_t *horizon){
+    if (horizon->isCompound){
+        drawHorizon(img, obstacles_array, &horizon->left, 0, horizon->intersect);
+        drawHorizon(img, obstacles_array, &horizon->right, horizon->intersect+1, IMAGE_WIDTH-1);
     }
-    else{
-        best_horizon = horizon2;
-        sec_horizon = horizon1;
+    else
+    {
+        drawHorizon(img, obstacles_array, horizon->main, 0, IMAGE_WIDTH-1);
     }
-
-    if (sec_horizon->quality < sec_horizon_threshold || best_horizon->m == sec_horizon->m){
-        // second horizon bad quality or parallel
-        drawHorizon_1H(img, obstacles_array, best_horizon);
-    }
-    else{
-        int horizon_intersect = (int) floor((best_horizon->b-sec_horizon->b)/(sec_horizon->m-best_horizon->m));
-        if (horizon_intersect < 0 || horizon_intersect > IMAGE_WIDTH){
-            // intersect outside image
-            drawHorizon_1H(img, obstacles_array, best_horizon);
-        }
-
-        if(best_horizon->m > sec_horizon->m){
-            drawHorizon(img, obstacles_array, best_horizon, 0, horizon_intersect);
-            drawHorizon(img, obstacles_array, sec_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
-        }
-        else{
-            drawHorizon(img, obstacles_array, sec_horizon, 0, horizon_intersect);
-            drawHorizon(img, obstacles_array, best_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
-        }
-    }  
-}
-
-void drawHorizon_1H(struct image_t *img, int *obstacles_array, horizon_line_t *best_horizon){
-    drawHorizon(img, obstacles_array, best_horizon, 0, IMAGE_WIDTH-1);
+    
 }
 
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right){
@@ -631,6 +579,39 @@ void getHorizonArray(struct image_t *img, int *horizon){
         }
 
     }
+}
+
+full_horizon_t mergeHorizonLines(horizon_line_t *horizon1, horizon_line_t *horizon2){
+    full_horizon_t fullHorizon;
+    // order left/right
+    if(horizon1->m > horizon2->m){
+        fullHorizon.left = *horizon1;
+        fullHorizon.right = *horizon2;
+    }
+    else {
+        fullHorizon.left = *horizon2;
+        fullHorizon.right = *horizon1;
+    }
+    // determine main horizon
+    int sec_horizon_quality = 0;
+    if (fullHorizon.left.quality > fullHorizon.right.quality){
+        fullHorizon.main = &fullHorizon.left;
+        sec_horizon_quality = fullHorizon.right.quality;
+    }
+    else{
+        fullHorizon.main = &fullHorizon.right;
+        sec_horizon_quality = fullHorizon.left.quality;
+    }
+    // evaluate secondary horizon viability
+    if (sec_horizon_quality < sec_horizon_threshold || horizon1->m == horizon2->m){
+        // second horizon bad quality or parallel
+        fullHorizon.isCompound = false;
+    }
+    else{
+        fullHorizon.isCompound = true;
+        fullHorizon.intersect = (int) floor((horizon1->b-horizon2->b)/(horizon2->m-horizon1->m));
+    }  
+    return fullHorizon;
 }
 
 void HorizonDetectionInit() {
