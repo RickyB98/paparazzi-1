@@ -205,3 +205,7 @@ sw/ext/pprzlink-bkp/
 # cmake
 cmake-build-debug/
 CMakeLists.txt
+
+
+# pics
+cnn.png
