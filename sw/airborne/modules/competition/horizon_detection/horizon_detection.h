@@ -1,8 +1,13 @@
 #ifndef PAPARAZZI_HORIZON_DETECTION_H
 #define PAPARAZZI_HORIZON_DETECTION_H
 
+struct image_t * horizon_detection_callback(struct image_t *img);
 extern void horizon_detection_init();
 extern void horizon_detection_loop();
+
+
+int findBestHeadingDirection(int* obstacles);
+
 
 // color filter settings
 extern uint8_t cf_ymin;
