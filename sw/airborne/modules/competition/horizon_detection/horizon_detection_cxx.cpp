@@ -517,7 +517,6 @@ void drawHorizon_2H(struct image_t *img, int *obstacles_array, horizon_line_t *h
             drawHorizon(img, obstacles_array, best_horizon, horizon_intersect+1, IMAGE_WIDTH-1);
         }
     }  
-    cv::imwrite("2H.png", img);
 }
 
 void drawHorizon_1H(struct image_t *img, int *obstacles_array, horizon_line_t *best_horizon){
