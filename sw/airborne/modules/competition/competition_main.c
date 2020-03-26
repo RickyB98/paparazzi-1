@@ -45,7 +45,7 @@ uint8_t tick = 0;
 
 void competition_loop() {
   CompetitionLoop();
-
+  
   struct NedCoor_f *ned = stateGetPositionNed_f();
   struct NedCoor_f *accel = stateGetAccelNed_f();
   struct FloatEulers *eulers = stateGetNedToBodyEulers_f();
@@ -109,7 +109,7 @@ void competition_loop() {
       } break;
       }
     } else {
-        fprintf(stderr, "[OF] N/A %d\n", tick++);
+       // fprintf(stderr, "[OF] N/A %d\n", tick++);
         opticflow_reset();
     }
   } break;

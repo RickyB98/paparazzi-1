@@ -72,7 +72,7 @@ float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 uint8_t suggested_action = OF_ACT_STRAIGHT;
 
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 10);
+  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 15);
   OpticflowInit();
 }
 
@@ -120,7 +120,7 @@ void draw_current_corners(struct image_t *img, struct point_t *positive_points,
       }
     }
   }
-  printf("positive_points_size: %d\n", positive_points_size);
+  //printf("positive_points_size: %d\n", positive_points_size);
   for (int i = 0; i < positive_points_size; ++i) {
     for (int dx = -2; dx <= 2; ++dx) {
       for (int dy = -2; dy <= 2; ++dy) {
@@ -163,7 +163,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     reset = false;
     fast9_detect(img1, fast9_threshold, 20, 30, 30, &num_corners,
                  &ret_corners_length, &ret_corners, NULL);
-    printf("done fast9\n");
+    //printf(stderr, "done fast9\n");
     if (num_corners <= 0) {
       reset = true;
       *positive_points_size = 0;
@@ -172,8 +172,8 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
     tracking = malloc(num_corners * sizeof(point_tracking_t));
     // num_corners = ret_corners_length;
-    printf("max points: %d, ret_corners_length: %d, num_corners: %d\n",
-           max_points, ret_corners_length, num_corners);
+    /*rintf("max points: %d, ret_corners_length: %d, num_corners: %d\n"
+           max_points, ret_corners_length, num_corners);*/
 
     for (int i = 0; i < num_corners; ++i) {
       ret_corners[i].count = 0;
@@ -203,7 +203,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
   for (int i = 0; i < vcc; ++i) {
     int idx = valid_corners_idx[i];
-    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 30) {
+    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 45) {
       tracking[idx].valid = false;
       continue;
     }
@@ -242,7 +242,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   if (stateIsSideslipValid()) {
     front_speed *= cos(stateGetSideslip_f());
   }
-  printf("front_speed: %f\n", front_speed);
+  //printf("front_speed: %f\n", front_speed);
 
   xfoe = (120 + offset0 + (eulers->theta - theta0) * offset0 / theta0) * factor;
   yfoe = 260 * factor;
@@ -265,7 +265,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     float ty = 0;
 
     float dt = 0;
-    // printf("tracking[%d].count = %d\n", i, tracking[i].count);
+    // printf(stderr, "tracking[%d].count = %d\n", i, tracking[i].count);
 
     int to_average = 0;
     for (int k = 0; k < tracking[i].count; ++k) {
@@ -295,7 +295,8 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
       }
 
       ++to_average;
-      float magic = front_speed * dt;
+      float magic = front_speed * dt; 
+
       // printf("px0: %f, px: %f, py0: %f, py: %f, k: %d, dt: %f, magic: %f,
       // speed: %f\n", px0, px, py0, py, k, dt, magic, front_speed);
 
@@ -307,7 +308,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     }
 
     if (to_average == 0) {
-      // printf("Nothing to average.\n");
+      //fprintf(stderr, "Nothing to average.\n");
       goto stop;
       return;
     }
@@ -319,16 +320,19 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
     tx -= dt;
     ty -= dt;
+    float lala = (tx + ty) / 2;
 
-    if (ABS(y_dist) < .3 && ty > 0) {
-
+    //fprintf(stderr,"x_dist  = %f, y_dist  = %f, mean TTC = %f \n", x_dist, y_dist, lala);
+    if (ABS(y_dist) < .3 && ty > 0 && tx > 0) {
+      //fprintf(stderr, "y_dist lower than treshold");
       if (first) {
-        printf("------\n");
+        //fprintf(stderr, "+-+-+-+-+-+-+-+-+-+-+\n");
         first = false;
       }
-      printf("[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if (front_speed * ty < 1. && to_average >= 10) {
+      //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
+      if ((front_speed * ty < 1. || front_speed * tx < 3.) && to_average >= 10) { // to_average >= 10
         ++close;
+        //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
         if (close - 1 < *positive_points_size) {
           struct point_t used = tracking[i].flows[tracking[i].count - 1].pos;
           used.x /= (uint32_t)factor;
@@ -346,14 +350,16 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   if (close > 0) {
     if (avg_py > 0) {
       suggested_action = OF_ACT_LEFT;
+      fprintf(stderr, "Average py: %f\n", avg_py);
       fprintf(stderr, "[OF_ACT] Go left (num: %d, py: %f)\n", close, avg_py);
     } else {
       suggested_action = OF_ACT_RIGHT;
+      fprintf(stderr, "Average py: %f\n", avg_py);
       fprintf(stderr, "[OF_ACT] Go right (num: %d, py: %f)\n", close, avg_py);
     }
   } else {
-    suggested_action = OF_ACT_STRAIGHT;
-    // fprintf(stderr, "[OF_ACT] Go straight\n");
+      suggested_action = OF_ACT_STRAIGHT;
+      fprintf(stderr, "[OF_ACT] Go straight\n");
   }
 
   *positive_points_size = Min(close, *positive_points_size);
