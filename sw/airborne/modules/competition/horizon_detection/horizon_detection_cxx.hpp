@@ -85,7 +85,9 @@ void drawHorizon_2H(struct image_t *img, int *obstacles_array, horizon_line_t *h
 void drawHorizon_1H(struct image_t *img, int *obstacles_array, horizon_line_t *horizon_line);
 
 /**
+ * WARNING: Doesn't seem to work at the moment, removes other drawing from img
  * Highlights the limits of the floor that were detected and stored in the horizon_array
+ * 
  * 
  * @param[in] img: image to draw on
  * @param[in] horizon_array: pointer to the array which contains obstacle information

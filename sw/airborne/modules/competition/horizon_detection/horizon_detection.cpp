@@ -52,7 +52,6 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     if (draw){
         printf("Drawing the Horizon...\n");
         drawHorizon_2H(img, (int*) obstacles_a, &best_horizon_l, &sec_horizon_l);
-        drawHorizonArray(img, (int*) horizon_a);
     }
     return NULL;
 }
