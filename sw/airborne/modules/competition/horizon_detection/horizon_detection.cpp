@@ -22,7 +22,7 @@ static pthread_mutex_t obstacle_mutex;
 full_horizon_t gl_fullHorizon;
 static pthread_mutex_t horizon_mutex;
 
-void hsGetObstacleArray(int* obstacleArray){
+void hdGetObstacleArray(int* obstacleArray){
     pthread_mutex_lock(&obstacle_mutex);
     memcpy(obstacleArray, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
     pthread_mutex_unlock(&obstacle_mutex);
