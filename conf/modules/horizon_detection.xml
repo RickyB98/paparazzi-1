@@ -3,9 +3,7 @@
 <module name="horizon_detection" dir="competition/horizon_detection">
     <doc>
         <description>Horizon Detection</description>
-
     </doc>
-    
     <settings>
         <dl_settings>
             <dl_settings NAME="FloorFilter">
@@ -25,31 +23,49 @@
             </dl_settings>    
         </dl_settings>
     </settings>
-    
     <header>
         <file name="horizon_detection.h" />
     </header>
     <init fun="horizon_detection_init()" />
     <periodic fun="horizon_detection_loop()" freq="10"/>
-    <makefile target="nps">
+    <makefile target="ap|nps">
         <flag name="CXXFLAGS" value="std=c++17"/>
         <file name="horizon_detection_cxx.cpp" />
-        <file name="horizon_detection.cpp" />
+        <file name="horizon_detection.c" />
         <flag name="CXXFLAGS" value ="DCOMPETITION_CAMERA_FRONT=front_camera"/>
+    </makefile>
+    <makefile target="nps">
         <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/include" />
-        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib" />
-        <flag name="LDFLAGS" value="lopencv_world" />
-        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib" />
-        <flag name="LDFLAGS" value="llibprotobuf" />
-        <flag name="LDFLAGS" value="lquirc" />
-        <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu" />
-        <flag name="LDFLAGS" value="ljpeg" />
-        <flag name="LDFLAGS" value="lpng" />
-        <flag name="LDFLAGS" value="ltiff" />
-        <flag name="LDFLAGS" value="lz" />
-        <flag name="LDFLAGS" value="ldl" />
-        <flag name="LDFLAGS" value="lm" />
-        <flag name="LDFLAGS" value="lpthread" />
-        <flag name="LDFLAGS" value="lrt" />
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
+        <flag name="LDFLAGS" value="lopencv_world"/>
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib"/>
+        <flag name="LDFLAGS" value="llibprotobuf"/>
+        <flag name="LDFLAGS" value="lquirc"/>
+        <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu"/>
+        <flag name="LDFLAGS" value="ljpeg"/>
+        <flag name="LDFLAGS" value="lpng"/>
+        <flag name="LDFLAGS" value="ltiff"/>
+        <flag name="LDFLAGS" value="lz"/>
+        <flag name="LDFLAGS" value="ldl"/>
+        <flag name="LDFLAGS" value="lm"/>
+        <flag name="LDFLAGS" value="lpthread"/>
+        <flag name="LDFLAGS" value="lrt"/>
+    </makefile>
+    <makefile target="ap">
+        <flag name="CXXFLAGS" value="I$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/include" />
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/lib"/>
+        <flag name="LDFLAGS" value="lopencv_world"/>
+        <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/share/OpenCV/3rdparty/lib"/>
+        <flag name="LDFLAGS" value="llibprotobuf"/>
+        <flag name="LDFLAGS" value="llibjpeg-turbo"/>
+        <flag name="LDFLAGS" value="llibpng"/>
+        <flag name="LDFLAGS" value="llibtiff"/>
+        <flag name="LDFLAGS" value="lzlib"/>
+        <flag name="LDFLAGS" value="ltegra_hal"/>
+        <flag name="LDFLAGS" value="lquirc"/>
+        <flag name="LDFLAGS" value="ldl"/>
+        <flag name="LDFLAGS" value="lm"/>
+        <flag name="LDFLAGS" value="lpthread"/>
+        <flag name="LDFLAGS" value="lrt"/>
     </makefile>
 </module>

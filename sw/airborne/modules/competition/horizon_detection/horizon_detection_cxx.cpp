@@ -1,13 +1,12 @@
+#include "horizon_detection.h"
 #include "horizon_detection_cxx.hpp"
 
 #include <iostream>
-#include <modules/computer_vision/cv.h>
 #include "modules/computer_vision/lib/vision/image.h"
-#include "modules/computer_vision/colorfilter.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
-#include <opencv_contour.h>
+#include <modules/computer_vision/opencv_contour.h>
 
 #include <string>
 
@@ -19,7 +18,6 @@ using namespace cv;
 #define BEST_HORIZON_QUAL_THRESHOLD 300
 #define SIZE_OF_DANGER_ZONE 50
 #define DANGER_LIMIT 2
-
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
@@ -638,20 +636,6 @@ void getHorizonArray(struct image_t *img, int *horizon){
 void HorizonDetectionInit() {
     cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
     cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
-
-    // Default values floor filter settings
-    cf_ymin = HORIZON_DETECTION_CF_YMIN;
-    cf_ymax = HORIZON_DETECTION_CF_YMAX;
-    cf_umin = HORIZON_DETECTION_CF_UMIN;
-    cf_umax = HORIZON_DETECTION_CF_UMAX;
-    cf_vmin = HORIZON_DETECTION_CF_VMIN;
-    cf_vmax = HORIZON_DETECTION_CF_VMAX;
-
-    // Default values ransac horizon settings
-    ransac_threshold = HORIZON_DETECTION_RANSAC_THRESHOLD;
-    ransac_iter = HORIZON_DETECTION_RANSAC_ITER;
-    sec_horizon_threshold = HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD;
-    obstacle_threshold = HORIZON_DETECTION_OBSTACLE_THRESHOLD;
 }
 
 void HorizonDetectionLoop() {

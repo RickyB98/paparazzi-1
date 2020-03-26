@@ -204,6 +204,6 @@ sw/ext/pprzlink-bkp/
 cmake-build-debug/
 CMakeLists.txt
 
-
+.vscode/settings.json
 # pics
 cnn.png

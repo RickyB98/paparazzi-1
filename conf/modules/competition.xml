@@ -18,7 +18,7 @@
     </dl_settings>
   </settings>
 
-  <depends>opticflow</depends>
+  <depends>opticflow,horizon_detection</depends>
   <header>
     <file name="competition_main.h" />
   </header>
