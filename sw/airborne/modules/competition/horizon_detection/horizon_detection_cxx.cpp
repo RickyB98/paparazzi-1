@@ -17,7 +17,8 @@ using namespace cv;
 #define IMAGE_WIDTH 520
 #define RANSAC_TIMEOUT_LIM 10
 #define BEST_HORIZON_QUAL_THRESHOLD 300
-
+#define SIZE_OF_DANGER_ZONE 50
+#define DANGER_LIMIT 2
 
 
 struct contour_estimation cont_est;
@@ -29,6 +30,14 @@ typedef struct horizon_line_s {
     int quality = 0;
     int limits[2] = {0, IMAGE_WIDTH-1};
 } horizon_line_t;
+
+enum navigation_state_t {
+  SAFE,
+  OBSTACLE_FOUND,
+  SEARCH_FOR_SAFE_HEADING,
+  OUT_OF_BOUNDS,
+  REENTER_ARENA
+};
 
 /**
  * Estimates the horizon line from an array of horizon candidates using RANSAC.
@@ -59,6 +68,13 @@ uint8_t ransac_threshold = 1;
 uint8_t ransac_iter = 1;
 uint8_t sec_horizon_threshold = 1;
 uint8_t obstacle_threshold = 1;
+
+// Global variables
+enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
+int global_obstacle[IMAGE_WIDTH] = {0};
+static pthread_mutex_t obstacle_mutex;
+float max_speed = 0.5f;
+float heading_change_rate = 20.0f * M_PI/180.0f;
 
 Mat image_edges(struct image_t *img)
 {
@@ -149,14 +165,14 @@ Mat findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p)
     x = p->x;
     y = p->y;
     
-    onFloor = isFloor(img, y, x);
+    onFloor = isFloor(img, x, y);
     
     track.data[y * img->w + x] = 255;
         //cout << "nnnnnn" << endl;
     while (!onFloor && x < img->w)
     {
         x++;
-        onFloor = isFloor(img, y, x);
+        onFloor = isFloor(img, x, y);
         track.data[y * img->w + x] = 255;
     }
     // move up to closest edge
@@ -327,7 +343,6 @@ void ransacHorizon(int *horizon, horizon_line_t *best_horizon_line)
 {
     int first = best_horizon_line->limits[0];
     int last = best_horizon_line->limits[1];
-    
 
     // initialize ransac horizon variables
     int quality[ransac_iter] = {0};
@@ -592,7 +607,6 @@ struct image_t * horizonDetection(struct image_t *img)
     }
     
     ransacHorizon((int*)horizon, &sec_horizon_line);
-
     // find obstacles using the horizon lines
     if (sec_horizon_line.quality > sec_horizon_threshold && (best_horizon_line.m !=0 || sec_horizon_line.m != 0)){
         // Continue with two horizon lines
@@ -616,6 +630,10 @@ struct image_t * horizonDetection(struct image_t *img)
             drawHorizon_1H(img, (int*) obstacle, &best_horizon_line);
         }
     }
+    // write obstacles to global variable
+    pthread_mutex_lock(&obstacle_mutex);
+    memcpy(global_obstacle, obstacle, sizeof(int)*IMAGE_WIDTH);
+    pthread_mutex_unlock(&obstacle_mutex);
 
     if (draw){
         drawHorizonArray(img, (int*) horizon);
@@ -626,6 +644,8 @@ struct image_t * horizonDetection(struct image_t *img)
 void HorizonDetectionInit() {
     cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
     cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
+
+    pthread_mutex_init(&obstacle_mutex, NULL);
 
     // Default values floor filter settings
     cf_ymin = HORIZON_DETECTION_CF_YMIN;
@@ -644,4 +664,102 @@ void HorizonDetectionInit() {
 
 void HorizonDetectionLoop() {
 
+
+    int local_obstacle[IMAGE_WIDTH];
+    pthread_mutex_lock(&obstacle_mutex);
+    memcpy(local_obstacle, global_obstacle, sizeof(int)*IMAGE_WIDTH);
+    pthread_mutex_unlock(&obstacle_mutex);
+    int danger_zone_start = (int)(IMAGE_WIDTH - SIZE_OF_DANGER_ZONE)/2;
+    int danger_zone_end = (int)(IMAGE_WIDTH + SIZE_OF_DANGER_ZONE)/2;
+    
+    int i;
+    int danger_count = 0;
+    float speed = max_speed;
+    int safest_direction = findBestHeadingDirection((int*) local_obstacle);
+    switch (navigation_state)
+    {
+    case SAFE:
+        for (i=danger_zone_start; i<=danger_zone_end; i++){
+            if (local_obstacle[i]>=0){
+                danger_count++;
+            }
+        }
+         
+        if (danger_count > DANGER_LIMIT){
+            navigation_state = OBSTACLE_FOUND;
+        }
+        else{
+            speed = max_speed/(danger_count);
+            guidance_h_set_guided_body_vel(speed, 0);
+        }
+        break;
+    
+    case OBSTACLE_FOUND:
+        // stop
+        guidance_h_set_guided_body_vel(0, 0);
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;
+
+    case SEARCH_FOR_SAFE_HEADING:
+        guidance_h_set_guided_heading_rate(heading_change_rate);
+        //yaw
+        // if there is no obstacle ahead, change state to SAFE
+        break;
+    
+    case OUT_OF_BOUNDS:
+        // stop
+        // change state to REENTER_ARENA
+        break;
+
+    case REENTER_ARENA:
+        // yaw
+        // if there is clear path into arena, chage state to SAFE
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+int findBestHeadingDirection(int* obstacles){
+    bool safe_section = false;
+    int best_first = 0;
+    int best_last = 0;
+    int best_count = 0;
+    int current_first = 0;
+    int current_count = 0;
+    int i;
+    for(i=0;i<IMAGE_WIDTH;i++){
+        if(safe_section){
+            if (obstacles[i]<0){
+                // continuing safe section
+                current_count++;
+            }
+            else{
+                // safe section ended
+                safe_section = false;
+                if (current_count>best_count){
+                    best_first = current_first;
+                    best_last = i-1;
+                    best_count = current_count;
+                }
+            }
+        }
+        else{
+            if (obstacles[i]<0){
+                // entering a safe section
+                safe_section = true;
+                current_first = i;
+                current_count = 1;
+            }
+        }
+    }
+    if(safe_section && current_count>best_count){
+        // last point of the array was safe, and it was the best section
+        best_first = current_first;
+        best_last = i;
+    }
+    // return center pixel of safe section
+    return (int)(best_last-best_first)/2;
 }
