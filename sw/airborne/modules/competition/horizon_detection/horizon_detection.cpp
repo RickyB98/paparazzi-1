@@ -67,7 +67,7 @@ void horizon_detection_loop() {
     memcpy(local_obstacles, gl_obstacles, sizeof(int)*IMAGE_WIDTH);
     pthread_mutex_unlock(&obstacle_mutex);
 
-    int bestHeading = findBestHeadingDirection(int* local_obstacles);
+    int bestHeading = findBestHeadingDirection((int*) local_obstacles);
 
     HorizonDetectionLoop();
 }
