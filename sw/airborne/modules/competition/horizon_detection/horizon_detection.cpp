@@ -68,7 +68,7 @@ void horizon_detection_loop() {
     pthread_mutex_unlock(&obstacle_mutex);
 
     int bestHeading = findBestHeadingDirection((int*) local_obstacles);
-
+    printf("best heading is %d\n", bestHeading);
     HorizonDetectionLoop();
 }
 

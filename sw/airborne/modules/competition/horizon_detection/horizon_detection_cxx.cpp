@@ -484,17 +484,14 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line, i
 }
 
 void drawHorizon_2H(struct image_t *img, int *obstacles_array, horizon_line_t *horizon1, horizon_line_t *horizon2){
-    printf("---Drawing Horizon---\n");
     horizon_line_t *best_horizon, *sec_horizon;
     if (horizon1->quality > horizon2->quality){
         best_horizon = horizon1;
         sec_horizon = horizon2;
-        printf("Horizon1 is better\n");
     }
     else{
         best_horizon = horizon2;
         sec_horizon = horizon1;
-        printf("Horizon2 is better\n");
     }
 
     if (sec_horizon->quality < sec_horizon_threshold || best_horizon->m == sec_horizon->m){
@@ -520,19 +517,16 @@ void drawHorizon_2H(struct image_t *img, int *obstacles_array, horizon_line_t *h
 }
 
 void drawHorizon_1H(struct image_t *img, int *obstacles_array, horizon_line_t *best_horizon){
-    printf("Only drawing one horizon\n");
     drawHorizon(img, obstacles_array, best_horizon, 0, IMAGE_WIDTH-1);
 }
 
 void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon, int limit_left, int limit_right){
     uint8_t *buffer = (uint8_t*) img->buf;
-    printf("Drawing from %d to %d\n", limit_left, limit_right);
-    printf("obstacles[10] is %d\n",obstacles[10]);
 
     // Go through all the pixels
     for (uint16_t y = Max(0, limit_left); y < Min(IMAGE_WIDTH, limit_right+1); y++) {
         int x = (int) round(horizon->m*y + horizon->b );
-        if (x>=img->w || x<0){printf("x out of bounds \n");continue;}
+        if (x>=img->w || x<0){continue;}
 
         //get corresponding pixels
         uint8_t *yp, *up, *vp;
