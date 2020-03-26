@@ -672,13 +672,14 @@ struct image_t * horizonDetection(struct image_t *img)
         }
     }
     // write obstacles to global variable
-    pthread_mutex_lock(&obstacle_mutex);
-    memcpy(global_obstacle, obstacle, sizeof(int)*IMAGE_WIDTH);
-    pthread_mutex_unlock(&obstacle_mutex);
+    //pthread_mutex_lock(&obstacle_mutex);
+    //memcpy(global_obstacle, obstacle, sizeof(int)*IMAGE_WIDTH);
+    //pthread_mutex_unlock(&obstacle_mutex);
 
-    if (draw){
-        drawHorizonArray(img, (int*) horizon);
-    }
+    // somehow this removes the horizon line from the image...
+    //if (draw){
+    //    drawHorizonArray(img, (int*) horizon);
+    //}
     return NULL;
 }
 
@@ -686,7 +687,7 @@ void HorizonDetectionInit() {
     cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
     cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
 
-    pthread_mutex_init(&obstacle_mutex, NULL);
+    //pthread_mutex_init(&obstacle_mutex, NULL);
 
     // Default values floor filter settings
     cf_ymin = HORIZON_DETECTION_CF_YMIN;
@@ -705,7 +706,7 @@ void HorizonDetectionInit() {
 
 void HorizonDetectionLoop() {
 
-
+    /*
     int local_obstacle[IMAGE_WIDTH];
     pthread_mutex_lock(&obstacle_mutex);
     memcpy(local_obstacle, global_obstacle, sizeof(int)*IMAGE_WIDTH);
@@ -759,7 +760,7 @@ void HorizonDetectionLoop() {
 
     default:
         break;
-    }
+    }*/
 }
 
 

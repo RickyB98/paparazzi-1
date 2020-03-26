@@ -11,7 +11,7 @@ extern "C" {
 #include "modules/computer_vision/cv.h"
 
 struct image_t * horizon_detection_callback(struct image_t *img){
-    
+    return NULL;
 }
 
 void horizon_detection_init() {
