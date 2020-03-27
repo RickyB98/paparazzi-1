@@ -61,7 +61,6 @@ uint16_t vcc = 0;
 bool firstRun = true;
 bool reset = false;
 
-float xfoeTot = 0, yfoeTot = 0;
 float xfoe = 0, yfoe = 0;
 
 #define AVERAGES 60
@@ -73,7 +72,7 @@ uint8_t suggested_action = OF_ACT_STRAIGHT;
 
 
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 60);
+  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 25);
   OpticflowInit();
 }
 
@@ -134,8 +133,8 @@ void draw_current_corners(struct image_t *img, struct point_t *positive_points,
   }
   for (int dx = -2; dx <= 2; ++dx) {
     for (int dy = -2; dy <= 2; ++dy) {
-      uint16_t x = Min(img->w - 1, xfoe / factor + dx);
-      uint16_t y = Min(img->h - 1, yfoe / factor + dy);
+      uint16_t x = Max(0, Min(img->w - 1, xfoe / factor + dx));
+      uint16_t y = Max(0, Min(img->h - 1, yfoe / factor + dy));
       uint8_t *up = (uint8_t *)&(img->buf[y * 2 * img->w + 2 * x]);
       *up = 255;
     }
@@ -204,7 +203,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
   for (int i = 0; i < vcc; ++i) {
     int idx = valid_corners_idx[i];
-    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 120) {
+    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 60) {
       tracking[idx].valid = false;
       continue;
     }
@@ -330,15 +329,15 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
         first = false;
       }
       //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if ((front_speed * ty < 2.5 || front_speed * tx < 1.5) && to_average >= 15) { // to_average >= 10
+      if ((front_speed * ty < 2 || front_speed * tx < 1) && to_average >= 12) { // to_average >= 10
         ++close;
         //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
-        if (front_speed * ty < 1.2){
+        /* if (front_speed * ty < 1.2){
           fprintf(stderr, "Decision based on ------->> Y \n");
         }
         if (front_speed * tx < .5){
           fprintf(stderr, "Decision based on ------->> X \n");
-        }
+        } */
         if (close - 1 < *positive_points_size) {
           struct point_t used = tracking[i].flows[tracking[i].count - 1].pos;
           used.x /= (uint32_t)factor;
@@ -358,15 +357,15 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     if (avg_py > 0) {
       suggested_action = OF_ACT_LEFT;
       //fprintf(stderr, "Average py: %f\n", avg_py);
-      fprintf(stderr, "[OF_ACT] Go left (num: %d, py: %f)\n", close, avg_py);
+      //fprintf(stderr, "[OF_ACT] Go left (num: %d, py: %f)\n", close, avg_py);
     } else {
       suggested_action = OF_ACT_RIGHT;
       //fprintf(stderr, "Average py: %f\n", avg_py);
-      fprintf(stderr, "[OF_ACT] Go right (num: %d, py: %f)\n", close, avg_py);
+      //fprintf(stderr, "[OF_ACT] Go right (num: %d, py: %f)\n", close, avg_py);
     }
   } else {
       suggested_action = OF_ACT_STRAIGHT;
-      fprintf(stderr, "[OF_ACT] Go straight\n");
+      //fprintf(stderr, "[OF_ACT] Go straight\n");
   }
 
   *positive_points_size = Min(close, *positive_points_size);

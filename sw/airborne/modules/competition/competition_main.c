@@ -121,22 +121,53 @@ void competition_loop() {
       break;
 
     if (hdGetHorizonHeight() > 30) {
-      int hdBestHeading = hdGetBestHeading() - 240;
-      if (ABS(hdBestHeading) > 150) {
-        ++hdCount;
-        if (hdCount > 10) {
-          hdCount = 0;
-          if (hdBestHeading > 0) {
-            setHeadingRate(30 * M_PI / 180.);
-          } else {
-            setHeadingRate(-30 * M_PI / 180.);
-          }
-          setSpeed(0);
-          hold = 45;
-          current_state = STATE_WAIT_HEADING;
+      int obstacleArray[IMAGE_WIDTH];
+      hdGetObstacleArray((int *)obstacleArray);
+
+      int begins[5];
+      int ends[5];
+      int currentSegment = 0;
+      bool inSegment = false;
+      for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
+        int val = obstacleArray[i];
+        if (inSegment && val < 0) {
+          ends[currentSegment] = i;
+          ++currentSegment;
+          inSegment = false;
+        } else if (!inSegment && val > 0) {
+          begins[currentSegment] = i;
+          inSegment = true;
+        }
+        if (currentSegment >= 5)
+          break;
+      }
+      if (inSegment && currentSegment < 5) {
+        ends[currentSegment++] = 519;
+      }
+
+      bool found = false;
+      for (int j = 0; j < currentSegment; ++j) {
+        printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
+        int length = ends[j] - begins[j];
+        if (length > 170) {
+          found = true;
+          break;
         }
       }
+
+      if (found) {
+        int hdBestHeading = hdGetBestHeading() - 240;
+        if (hdBestHeading > 0) {
+          setHeadingRate(30 * M_PI / 180.);
+        } else {
+          setHeadingRate(-30 * M_PI / 180.);
+        }
+        setSpeed(0);
+        hold = 45;
+        current_state = STATE_WAIT_HEADING;
+      }
     }
+
   } break;
   case STATE_WAIT_HEADING: {
     setSpeed(0);
@@ -148,7 +179,6 @@ void competition_loop() {
     }
   } break;
   }
-
   switch (mode) {
   case HEADING_M: {
     guidance_h_set_guided_heading(_heading);

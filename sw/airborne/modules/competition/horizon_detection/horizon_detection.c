@@ -123,9 +123,9 @@ void horizon_detection_loop() {
     if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED){
         return;
     }
-    int bestHeading = hdGetBestHeading();
-    int centerHeight = hdGetHorizonHeight();
-    printf("best heading: %d, horizon height: %d\n", bestHeading,centerHeight);
+    //int bestHeading = hdGetBestHeading();
+    //int centerHeight = hdGetHorizonHeight();
+    //printf("best heading: %d, horizon height: %d\n", bestHeading,centerHeight);
     HorizonDetectionLoop();
 }
 
