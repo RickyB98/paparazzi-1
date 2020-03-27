@@ -8,6 +8,7 @@ extern "C" {
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "generated/airframe.h"
 #include "generated/flight_plan.h"
+#include "modules/competition/horizon_detection/horizon_detection.h"
 #include "modules/competition/opticflow/opticflow.h"
 #include "state.h"
 #include "stdio.h"
@@ -25,7 +26,7 @@ extern "C" {
 
 int current_state = STATE_CONTINUE;
 
-float straight_speed = 1.;
+float straight_speed = 1.5;
 
 int hold = 0;
 
@@ -35,22 +36,24 @@ float _heading = 0;
 
 int mode = HEADING_M;
 
-void competition_init() { 
-    CompetitionInit(); 
-    guidance_h_SetMaxSpeed(10.0f);
-    guidance_h.gains.v = 100.;
+void competition_init() {
+  CompetitionInit();
+  guidance_h_SetMaxSpeed(10.0f);
+  guidance_h.gains.v = 100.;
 }
 
 uint8_t tick = 0;
 
+int hdCount = 0;
+
 void competition_loop() {
   CompetitionLoop();
-  
+
   struct NedCoor_f *ned = stateGetPositionNed_f();
   struct NedCoor_f *accel = stateGetAccelNed_f();
   struct FloatEulers *eulers = stateGetNedToBodyEulers_f();
   struct FloatRates *rates = stateGetBodyRates_f();
-  
+
   if (!InsideObstacleZone(ned->x, ned->y)) {
     current_state = STATE_OUT_OF_OBSTACLE_ZONE;
   } else if (current_state == STATE_OUT_OF_OBSTACLE_ZONE) {
@@ -69,12 +72,12 @@ void competition_loop() {
     }
 
     float diff = ABS(psi - eulers->psi);
-    
+
     while (diff > M_PI) {
       diff -= 2 * M_PI;
     }
     if (ABS(diff) < .3) {
-      setSpeed(0.2);
+      setSpeed(0.5);
       setHeadingRate(0);
     } else {
       setSpeed(0);
@@ -83,11 +86,13 @@ void competition_loop() {
     opticflow_reset();
   } break;
   case STATE_CONTINUE: {
-    // Opticflow (only check when accel < 1e-2)
     float accelY = ACCEL_FLOAT_OF_BFP(accel->y);
     float accelZ = ACCEL_FLOAT_OF_BFP(accel->z);
+
+    // Opticflow (only check when accel < 1e-2)
     if (sqrt(pow(rates->p, 2) + pow(rates->q, 2) + pow(rates->r, 2)) < .1 &&
-        ABS(eulers->phi) < 1e-1 && (!stateIsSideslipValid() || ABS(stateGetSideslip_f()) < 1e-1)) {
+        ABS(eulers->phi) < 1e-1 &&
+        (!stateIsSideslipValid() || ABS(stateGetSideslip_f()) < 1e-1)) {
       switch (of_get_suggested_action()) {
       case OF_ACT_STRAIGHT: {
         setSpeed(straight_speed);
@@ -109,8 +114,28 @@ void competition_loop() {
       } break;
       }
     } else {
-       // fprintf(stderr, "[OF] N/A %d\n", tick++);
-        opticflow_reset();
+      // fprintf(stderr, "[OF] N/A %d\n", tick++);
+      opticflow_reset();
+    }
+    if (current_state != STATE_CONTINUE)
+      break;
+
+    if (hdGetHorizonHeight() > 30) {
+      int hdBestHeading = hdGetBestHeading() - 240;
+      if (ABS(hdBestHeading) > 150) {
+        ++hdCount;
+        if (hdCount > 10) {
+          hdCount = 0;
+          if (hdBestHeading > 0) {
+            setHeadingRate(30 * M_PI / 180.);
+          } else {
+            setHeadingRate(-30 * M_PI / 180.);
+          }
+          setSpeed(0);
+          hold = 45;
+          current_state = STATE_WAIT_HEADING;
+        }
+      }
     }
   } break;
   case STATE_WAIT_HEADING: {
