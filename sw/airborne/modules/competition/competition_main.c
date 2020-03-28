@@ -20,13 +20,14 @@ extern "C" {
 #define STATE_WAIT_HEADING 0
 #define STATE_CONTINUE 1
 #define STATE_OUT_OF_OBSTACLE_ZONE 2
+#define STATE_FIND_HEADING 3
 
 #define HEADING_M 0
 #define HEADING_RATE_M 1
 
 int current_state = STATE_CONTINUE;
 
-float straight_speed = 1.5;
+float straight_speed = 1.;
 
 int hold = 0;
 
@@ -57,7 +58,7 @@ void competition_loop() {
   if (!InsideObstacleZone(ned->x, ned->y)) {
     current_state = STATE_OUT_OF_OBSTACLE_ZONE;
   } else if (current_state == STATE_OUT_OF_OBSTACLE_ZONE) {
-    current_state = STATE_CONTINUE;
+    current_state = STATE_FIND_HEADING;
   }
 
   switch (current_state) {
@@ -98,19 +99,14 @@ void competition_loop() {
         setSpeed(straight_speed);
         setHeadingRate(0.);
       } break;
-      case OF_ACT_LEFT: {
+      case OF_ACT_LEFT: /*{
         fprintf(stderr, "[OF_ACT] Go left\n");
-        setHeadingRate(-30 * M_PI / 180.);
-        setSpeed(0);
-        hold = 45;
-        current_state = STATE_WAIT_HEADING;
-      } break;
+        current_state = STATE_FIND_HEADING;
+      } break;*/
       case OF_ACT_RIGHT: {
-        fprintf(stderr, "[OF_ACT] Go right\n");
-        setHeadingRate(30 * M_PI / 180.);
-        setSpeed(0);
-        hold = 45;
-        current_state = STATE_WAIT_HEADING;
+        // fprintf(stderr, "[OF_ACT] Go right\n");
+        fprintf(stderr, "[OF_ACT] Find heading\n");
+        current_state = STATE_FIND_HEADING;
       } break;
       }
     } else {
@@ -119,55 +115,62 @@ void competition_loop() {
     }
     if (current_state != STATE_CONTINUE)
       break;
+    /*
+        if (hdGetHorizonHeight() > 30) {
+          int obstacleArray[IMAGE_WIDTH];
+          hdGetObstacleArray((int *)obstacleArray);
 
-    if (hdGetHorizonHeight() > 30) {
-      int obstacleArray[IMAGE_WIDTH];
-      hdGetObstacleArray((int *)obstacleArray);
+          int begins[5];
+          int ends[5];
+          int currentSegment = 0;
+          bool inSegment = false;
+          for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
+            int val = obstacleArray[i];
+            if (inSegment && val < 0) {
+              ends[currentSegment] = i;
+              ++currentSegment;
+              inSegment = false;
+            } else if (!inSegment && val > 0) {
+              begins[currentSegment] = i;
+              inSegment = true;
+            }
+            if (currentSegment >= 5)
+              break;
+          }
+          if (inSegment && currentSegment < 5) {
+            ends[currentSegment++] = 519;
+          }
 
-      int begins[5];
-      int ends[5];
-      int currentSegment = 0;
-      bool inSegment = false;
-      for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
-        int val = obstacleArray[i];
-        if (inSegment && val < 0) {
-          ends[currentSegment] = i;
-          ++currentSegment;
-          inSegment = false;
-        } else if (!inSegment && val > 0) {
-          begins[currentSegment] = i;
-          inSegment = true;
-        }
-        if (currentSegment >= 5)
-          break;
-      }
-      if (inSegment && currentSegment < 5) {
-        ends[currentSegment++] = 519;
-      }
+          bool found = false;
+          for (int j = 0; j < currentSegment; ++j) {
+            printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
+            int length = ends[j] - begins[j];
+            if (length > 170) {
+              found = true;
+              break;
+            }
+          }
 
-      bool found = false;
-      for (int j = 0; j < currentSegment; ++j) {
-        printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
-        int length = ends[j] - begins[j];
-        if (length > 170) {
-          found = true;
-          break;
-        }
-      }
+          if (found) {
+            int hdBestHeading = hdGetBestHeading() - 240;
+            if (hdBestHeading > 0) {
+              setHeadingRate(30 * M_PI / 180.);
+            } else {
+              setHeadingRate(-30 * M_PI / 180.);
+            }
+            setSpeed(0);
+            hold = 45;
+            current_state = STATE_WAIT_HEADING;
+          }
+        } */
 
-      if (found) {
-        int hdBestHeading = hdGetBestHeading() - 240;
-        if (hdBestHeading > 0) {
-          setHeadingRate(30 * M_PI / 180.);
-        } else {
-          setHeadingRate(-30 * M_PI / 180.);
-        }
-        setSpeed(0);
-        hold = 45;
-        current_state = STATE_WAIT_HEADING;
-      }
-    }
-
+  } break;
+  case STATE_FIND_HEADING: {
+    int hdBestHeading = hdGetBestHeading() - 240;
+    setHeading(eulers->psi + hdBestHeading / 240. * 45 * M_PI / 180.);
+    setSpeed(0);
+    hold = 45;
+    current_state = STATE_WAIT_HEADING;
   } break;
   case STATE_WAIT_HEADING: {
     setSpeed(0);
@@ -181,6 +184,16 @@ void competition_loop() {
   }
   switch (mode) {
   case HEADING_M: {
+    /*float diff = ABS(_heading - eulers->psi);
+
+    while (diff > M_PI) {
+      diff -= 2 * M_PI;
+    }
+    if (ABS(diff) < .3) {
+      guidance_h_set_guided_heading_rate(_heading);
+    } else {
+      guidance_h_set_guided_heading_rate((diff >= 0 ? -1 : 1) * M_PI_4);
+    }*/
     guidance_h_set_guided_heading(_heading);
   } break;
   case HEADING_RATE_M:

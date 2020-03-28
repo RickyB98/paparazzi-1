@@ -104,7 +104,7 @@
     </module>
     <module name="opticflow">
         <define name="COMPETITION_CAMERA_FRONT" value="front_camera" />
-        <define name="OPTICFLOW_DRAW" value="FALSE" />
+        <define name="OPTICFLOW_DRAW" value="TRUE" />
     </module>
     <module name="horizon_detection">     
         <define name="HORIZON_DETECTION_CF_YMIN" value="100" />
