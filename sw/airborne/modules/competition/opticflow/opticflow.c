@@ -177,8 +177,17 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     num_corners = 0;
     firstRun = false;
     reset = false;
+    #ifdef OPTICFLOW_TIMING
+    clock_t fast9_tic = clock();
+    #endif
     fast9_detect(img1, fast9_threshold, 20, 30, 30, &num_corners,
                  &ret_corners_length, &ret_corners, NULL);
+    #ifdef OPTICFLOW_TIMING
+    clock_t fast9_toc = clock();
+    double fast9_time = (double) (fast9_toc - fast9_tic) / CLOCKS_PER_SEC;
+    printf("[OF_LK] %f - max freq: %f\n", fast9_time, 1/fast9_time);
+    #endif
+
     //printf(stderr, "done fast9\n");
     if (num_corners <= 0) {
       reset = true;
@@ -211,9 +220,17 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   }
 
   // printf("points before: %d, ", num_corners);
+  #ifdef OPTICFLOW_TIMING
+  clock_t lk_tic = clock();
+  #endif
   struct flow_t *flow =
       opticFlowLK(img2, img1, valid_corners, &vcc, 5, (uint16_t)factor, 50, 250,
                   max_points, pyramid, 1);
+  #ifdef OPTICFLOW_TIMING
+  clock_t lk_toc = clock();
+  double lk_time = (double) (lk_toc - lk_tic) / CLOCKS_PER_SEC;
+  printf("[OF_LK] %f - max freq: %f\n", lk_time, 1/lk_time);
+  #endif
 
   // updates ret_corners positions after detecting flow
 
