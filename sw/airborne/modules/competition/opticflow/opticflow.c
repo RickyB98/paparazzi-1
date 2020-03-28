@@ -31,6 +31,12 @@ extern "C" {
 
 #define MAX_TRACK 30
 
+#ifndef OPTICFLOW_DRAW
+#define OPTICFLOW_DRAW TRUE
+#endif
+
+#define OPTICFLOW_TIMING
+
 typedef struct point_tracking_s {
   int count;
   struct flow_t flows[MAX_TRACK];
@@ -81,6 +87,9 @@ void opticflow_loop() { OpticflowLoop(); }
 void opticflow_reset() { reset = true; }
 
 struct image_t *store_image(struct image_t *img) {
+  #ifdef OPTICFLOW_TIMING
+  clock_t tic = clock();
+  #endif
   if (img1 != NULL) {
     free(img1->buf);
     free(img1);
@@ -101,11 +110,17 @@ struct image_t *store_image(struct image_t *img) {
   draw_current_corners(img, (struct point_t *)positive_points,
                        positive_points_size);
   free(positive_points);
+  #ifdef OPTICFLOW_TIMING
+  clock_t toc = clock();
+  double timing = ((double) (toc - tic)) / CLOCKS_PER_SEC;
+  printf("[OF_TIMING] %f (max freq: %f)\n", timing, 1./timing);
+  #endif
   return img;
 }
 
 void draw_current_corners(struct image_t *img, struct point_t *positive_points,
                           int positive_points_size) {
+#if OPTICFLOW_DRAW
   for (int i = 0; i < num_corners; ++i) {
     if (!tracking[i].valid)
       continue;
@@ -139,6 +154,7 @@ void draw_current_corners(struct image_t *img, struct point_t *positive_points,
       *up = 255;
     }
   }
+#endif
 }
 
 void parse_images(struct point_t **positive_points, int *positive_points_size) {

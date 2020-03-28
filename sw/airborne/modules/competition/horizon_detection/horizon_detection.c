@@ -5,10 +5,12 @@ extern "C" {
 #include "horizon_detection.h"
 
 #include <stdio.h>
+#include <time.h>
 #include "modules/computer_vision/cv.h"
 
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 
+#define HD_TIMING // comment to disable timings
 
 // local function declarations
 struct image_t * horizon_detection_callback(struct image_t *img);
@@ -46,8 +48,10 @@ int hdGetHorizonHeight(void){
     return findCenterHorizonHeight(&local_horizon);
 }
 
-
 struct image_t * horizon_detection_callback(struct image_t *img){
+    #ifdef HD_TIMING
+    clock_t tic = clock();
+    #endif
     if (img->h != IMAGE_WIDTH){
         // IMAGE_WIDTH is the baseline on the image if the horizon was horizontal.
         // Because the image is rotated, this is compared to the height
@@ -86,6 +90,12 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     if (draw){
         drawFullHorizon(img, (int*) obstacles_a, &fullHorizon);
     }
+
+    #ifdef HD_TIMING
+    clock_t toc = clock();
+    double timing = ((double) (toc - tic)) / CLOCKS_PER_SEC;
+    printf("[HD_TIMING] %f (max freq: %f)\n", timing, 1./timing);
+    #endif
     return NULL;
 }
 
@@ -113,7 +123,7 @@ void horizon_detection_init() {
     sec_horizon_threshold = HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD;
     obstacle_threshold = HORIZON_DETECTION_OBSTACLE_THRESHOLD;
     
-    cv_add_to_device(&COMPETITION_CAMERA_FRONT, horizon_detection_callback, 5);
+    cv_add_to_device(&COMPETITION_CAMERA_FRONT, horizon_detection_callback, 20);
 
     pthread_mutex_init(&obstacle_mutex, NULL);
     pthread_mutex_init(&horizon_mutex, NULL);
