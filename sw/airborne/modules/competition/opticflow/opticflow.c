@@ -30,6 +30,7 @@ extern "C" {
 #define ABS(x) (((x) < 0 ? -(x) : (x)))
 
 #define MAX_TRACK 30
+#define MAX_POINTS 150
 
 #ifndef OPTICFLOW_DRAW
 #define OPTICFLOW_DRAW TRUE
@@ -51,7 +52,7 @@ uint16_t num_corners = 0;
 uint16_t ret_corners_length = 0;
 
 // Telemetry
-uint8_t max_points = 150;
+
 uint8_t pyramid = 2;
 uint8_t reset_below_points = 20;
 uint8_t fast9_threshold = 15;
@@ -60,7 +61,7 @@ float factor = 2000.;
 
 struct point_t *ret_corners;
 
-point_tracking_t *tracking;
+point_tracking_t tracking[MAX_POINTS];
 
 uint16_t vcc = 0;
 
@@ -75,7 +76,6 @@ uint8_t currentAvgIdx = 0;
 float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 
 uint8_t suggested_action = OF_ACT_STRAIGHT;
-
 
 void opticflow_init() {
   cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 25);
@@ -168,10 +168,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
       free(ret_corners);
       ret_corners = NULL;
     }
-    if (tracking != NULL) {
-      free(tracking);
-      tracking = NULL;
-    }
+    
     ret_corners_length = 20;
     ret_corners = malloc(ret_corners_length * sizeof(struct point_t));
     num_corners = 0;
@@ -185,7 +182,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     #ifdef OPTICFLOW_TIMING
     clock_t fast9_toc = clock();
     double fast9_time = (double) (fast9_toc - fast9_tic) / CLOCKS_PER_SEC;
-    printf("[OF_LK] %f - max freq: %f\n", fast9_time, 1/fast9_time);
+    printf("[OF_F9] %f - max freq: %f\n", fast9_time, 1/fast9_time);
     #endif
 
     //printf(stderr, "done fast9\n");
@@ -195,7 +192,8 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
       return;
     }
 
-    tracking = malloc(num_corners * sizeof(point_tracking_t));
+    num_corners = Min(num_corners, MAX_POINTS); // just chop down the last part of the array if too big
+
     // num_corners = ret_corners_length;
     /*rintf("max points: %d, ret_corners_length: %d, num_corners: %d\n"
            max_points, ret_corners_length, num_corners);*/
@@ -207,8 +205,8 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
     }
   }
 
-  struct point_t *valid_corners = malloc(num_corners * sizeof(struct point_t));
-  int *valid_corners_idx = malloc(num_corners * sizeof(int));
+  struct point_t valid_corners[MAX_POINTS];
+  int valid_corners_idx[MAX_POINTS];
 
   vcc = 0;
   for (int i = 0; i < num_corners; ++i) {
@@ -225,7 +223,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   #endif
   struct flow_t *flow =
       opticFlowLK(img2, img1, valid_corners, &vcc, 5, (uint16_t)factor, 50, 250,
-                  max_points, pyramid, 1);
+                  MAX_POINTS, pyramid, 1);
   #ifdef OPTICFLOW_TIMING
   clock_t lk_toc = clock();
   double lk_time = (double) (lk_toc - lk_tic) / CLOCKS_PER_SEC;
@@ -259,9 +257,6 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
         (uint32_t)round((flow[i].pos.y + flow[i].flow_y) / factor);
     ret_corners[idx].count = flow[i].pos.count;
   }
-
-  free(valid_corners);
-  free(valid_corners_idx);
 
   // printf("points after: %d\n", vcc);
 
