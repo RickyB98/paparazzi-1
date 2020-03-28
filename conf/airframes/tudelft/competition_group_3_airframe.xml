@@ -117,7 +117,7 @@
         <define name="HORIZON_DETECTION_RANSAC_THRESHOLD" value="5" />
         <define name="HORIZON_DETECTION_RANSAC_ITER" value="10" />
         <define name="HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD" value="40" />
-        <define name="HORIZON_DETECTION_OBSTACLE_THRESHOLD" value="5" />
+        <define name="HORIZON_DETECTION_OBSTACLE_THRESHOLD" value="10" />
     </module>
     
     <module name="video_rtp_stream">

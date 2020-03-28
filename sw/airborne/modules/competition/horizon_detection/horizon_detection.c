@@ -10,7 +10,7 @@ extern "C" {
 
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 
-#define HD_TIMING // comment to disable timings
+//#define HD_TIMING // comment to disable timings
 
 // local function declarations
 struct image_t * horizon_detection_callback(struct image_t *img);

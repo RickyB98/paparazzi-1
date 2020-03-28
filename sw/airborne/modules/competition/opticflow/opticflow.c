@@ -36,7 +36,7 @@ extern "C" {
 #define OPTICFLOW_DRAW TRUE
 #endif
 
-#define OPTICFLOW_TIMING
+//#define OPTICFLOW_TIMING
 
 typedef struct point_tracking_s {
   int count;
@@ -54,7 +54,7 @@ uint16_t ret_corners_length = 0;
 // Telemetry
 
 uint8_t pyramid = 2;
-uint8_t reset_below_points = 20;
+uint8_t reset_below_points = 10;
 uint8_t fast9_threshold = 15;
 
 float factor = 2000.;
@@ -78,7 +78,7 @@ float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 uint8_t suggested_action = OF_ACT_STRAIGHT;
 
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 25);
+  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 15);
   OpticflowInit();
 }
 
@@ -106,7 +106,16 @@ struct image_t *store_image(struct image_t *img) {
   int positive_points_size = 30;
   struct point_t *positive_points = malloc(positive_points_size * sizeof(struct point_t));
   
+  #ifdef OPTICFLOW_TIMING
+  clock_t parseTic = clock();
+  #endif
   parse_images((struct point_t **)&positive_points, &positive_points_size);
+  #ifdef OPTICFLOW_TIMING
+  clock_t parseToc = clock();
+  double parseTime = (double) (parseToc - parseTic) / CLOCKS_PER_SEC;
+  printf("[OC_PI] %f - max freq: %f\n", parseTime, 1/parseTime);
+  #endif
+
   draw_current_corners(img, (struct point_t *)positive_points,
                        positive_points_size);
   free(positive_points);
@@ -357,7 +366,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
         first = false;
       }
       //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if ((front_speed * ty < 2 || front_speed * tx < 1) && to_average >= 12) { // to_average >= 10
+      if ((front_speed * ty < 2 || front_speed * tx < 1) && to_average >= 5) { // to_average >= 10
         ++close;
         //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
         /* if (front_speed * ty < 1.2){

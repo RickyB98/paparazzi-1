@@ -23,7 +23,7 @@ inline void setGuided(void){
     <waypoint name="STDBY" x="1.9" y="0.5"/>
     <waypoint name="TD" x="0.8" y="-1.7"/>
     <waypoint name="GOAL" x="1.9" y="0.5"/>
-    <waypoint name="TRAJECTORY" x="1.9" y="0.7"/>
+    <waypoint name="TRAJECTORY" x="1.9" y="0.5"/>
     <waypoint lat="51.9905874" lon="4.3767766" name="_CZ1"/>
     <waypoint lat="51.990644" lon="4.376721" name="_CZ2"/>
     <waypoint lat="51.990676" lon="4.376805" name="_CZ3"/>

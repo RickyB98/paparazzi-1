@@ -393,7 +393,8 @@ static void init_gazebo(void)
 
   // get world
   string world_uri = "world://" + string(NPS_GAZEBO_WORLD);
-  string world_uri1 = "world://" + string("cyberzoo2019_orange_poles_panels_mats.world");
+  //string world_uri1 = "world://" + string("cyberzoo2019_orange_poles_panels_mats.world");
+  string world_uri1 = "world://" + string("cyberzoo2019_orange_poles.world");
   string world_filename = sdf::findFile(world_uri, false);
   string world_filename1 = sdf::findFile(world_uri1, false);
   cout<<world_filename<<endl;

@@ -37,6 +37,8 @@ float _heading = 0;
 
 int mode = HEADING_M;
 
+bool of_na = false;
+
 void competition_init() {
   CompetitionInit();
   guidance_h_SetMaxSpeed(10.0f);
@@ -59,6 +61,8 @@ void competition_loop() {
     current_state = STATE_OUT_OF_OBSTACLE_ZONE;
   } else if (current_state == STATE_OUT_OF_OBSTACLE_ZONE) {
     current_state = STATE_FIND_HEADING;
+    //current_state = STATE_CONTINUE;
+    printf("[OOOZ] Find heading\n");
   }
 
   switch (current_state) {
@@ -78,6 +82,7 @@ void competition_loop() {
       diff -= 2 * M_PI;
     }
     if (ABS(diff) < .3) {
+      //printf("[OOOZ] Going back in...\n");
       setSpeed(0.5);
       setHeadingRate(0);
     } else {
@@ -91,9 +96,13 @@ void competition_loop() {
     float accelZ = ACCEL_FLOAT_OF_BFP(accel->z);
 
     // Opticflow (only check when accel < 1e-2)
-    if (sqrt(pow(rates->p, 2) + pow(rates->q, 2) + pow(rates->r, 2)) < .1 &&
+    if (sqrt(pow(rates->p, 2) + pow(rates->q, 2) + pow(rates->r, 2)) < .05 &&
         ABS(eulers->phi) < 1e-1 &&
         (!stateIsSideslipValid() || ABS(stateGetSideslip_f()) < 1e-1)) {
+      if (of_na) {
+        of_na = false;
+        printf("[OF] Available\n");
+      }
       switch (of_get_suggested_action()) {
       case OF_ACT_STRAIGHT: {
         setSpeed(straight_speed);
@@ -105,71 +114,73 @@ void competition_loop() {
       } break;*/
       case OF_ACT_RIGHT: {
         // fprintf(stderr, "[OF_ACT] Go right\n");
-        fprintf(stderr, "[OF_ACT] Find heading\n");
+        printf("[OF_ACT] Find heading\n");
         current_state = STATE_FIND_HEADING;
       } break;
       }
     } else {
       // fprintf(stderr, "[OF] N/A %d\n", tick++);
+      if (!of_na) {
+        of_na = true;
+        printf("[OF] N/A\n");
+      }
       opticflow_reset();
     }
     if (current_state != STATE_CONTINUE)
       break;
-    /*
-        if (hdGetHorizonHeight() > 30) {
-          int obstacleArray[IMAGE_WIDTH];
-          hdGetObstacleArray((int *)obstacleArray);
 
-          int begins[5];
-          int ends[5];
-          int currentSegment = 0;
-          bool inSegment = false;
-          for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
-            int val = obstacleArray[i];
-            if (inSegment && val < 0) {
-              ends[currentSegment] = i;
-              ++currentSegment;
-              inSegment = false;
-            } else if (!inSegment && val > 0) {
-              begins[currentSegment] = i;
-              inSegment = true;
-            }
-            if (currentSegment >= 5)
-              break;
-          }
-          if (inSegment && currentSegment < 5) {
-            ends[currentSegment++] = 519;
-          }
+    int height = hdGetHorizonHeight();
+    if (height > 20 && height < 200/* && of_na*/) {
+      int obstacleArray[IMAGE_WIDTH];
+      hdGetObstacleArray((int *)obstacleArray);
 
-          bool found = false;
-          for (int j = 0; j < currentSegment; ++j) {
-            printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
-            int length = ends[j] - begins[j];
-            if (length > 170) {
-              found = true;
-              break;
-            }
-          }
+      int begins[30];
+      int ends[30];
+      int currentSegment = 0;
+      bool inSegment = false;
+      for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
+        int val = obstacleArray[i];
+        if (inSegment && (val <= 50 || val >= 180)) {
+          ends[currentSegment++] = i;
+          inSegment = false;
+        } else if (!inSegment && (val > 50 && val < 180)) {
+          begins[currentSegment] = i;
+          inSegment = true;
+        }
+        if (currentSegment >= 30)
+          break;
+      }
+      if (inSegment && currentSegment < 30) {
+        ends[currentSegment++] = 519;
+      }
 
-          if (found) {
-            int hdBestHeading = hdGetBestHeading() - 240;
-            if (hdBestHeading > 0) {
-              setHeadingRate(30 * M_PI / 180.);
-            } else {
-              setHeadingRate(-30 * M_PI / 180.);
-            }
-            setSpeed(0);
-            hold = 45;
-            current_state = STATE_WAIT_HEADING;
-          }
-        } */
+      int totalLength = 0;
+      //printf("[HD_SEG] ");
+      for (int j = 0; j < currentSegment; ++j) {
+        //printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
+        //printf("%d ", ends[j] - begins[j]);
+        if (ends[j] - begins[j] < 20)
+          continue;
+        totalLength += ends[j] - begins[j];
+      }
+      //printf("\n");
+      if (totalLength > 260) {
+        setSpeed(0);
+        current_state = STATE_FIND_HEADING;
+        printf("[HD_ACT] Find heading\n");
+      }
+    }
 
   } break;
   case STATE_FIND_HEADING: {
     int hdBestHeading = hdGetBestHeading() - 240;
-    setHeading(eulers->psi + hdBestHeading / 240. * 45 * M_PI / 180.);
+    //setHeading(eulers->psi + hdBestHeading / 240. * 45 * M_PI / 180.);
+
+    float rate = hdBestHeading / 240. * M_PI_4;
+    printf("-> rate: %f\n", rate);
+    setHeadingRate(rate);
     setSpeed(0);
-    hold = 45;
+    hold = 20;
     current_state = STATE_WAIT_HEADING;
   } break;
   case STATE_WAIT_HEADING: {
