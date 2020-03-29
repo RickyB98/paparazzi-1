@@ -134,25 +134,21 @@ void findHorizonCandidate(struct image_t *img, Mat *edge_image, Dot *p) {
   bool onFloor;
   int onEdge;
   int y;
-  Mat track(img->h, img->w, CV_8UC1);
   x = p->x;
   y = p->y;
 
   onFloor = isFloor(img, x, y);
 
-  track.data[y * img->w + x] = 255;
   // cout << "nnnnnn" << endl;
   while (!onFloor && x < img->w) {
     x++;
     onFloor = isFloor(img, x, y);
-    track.data[y * img->w + x] = 255;
   }
   // move up to closest edge
   onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
   while (onEdge == 0 && x < img->w - 50 - 1) {
     x++;
     onEdge = (edge_image->data[y * edge_image->cols + x] > 0);
-    track.data[y * img->w + x] = 255;
   }
   p->x = x;
   p->y = y;
@@ -354,21 +350,6 @@ void ransacHorizon(int *horizon_array, horizon_line_t *best_horizon_line,
     }
   }
 
-  // for (i=first; i<=last´; i++){
-  //     local_error = horizon[i] - best_m*i - best_b;
-  //     if (best_m > 0 && local_error<ransac_threshold){
-  //         limit[1] = i;
-
-  //     }
-  //     else if (best_m < 0 && local_error<ransac_threshold){
-  //         limit[0] = i;
-
-  //     }
-  //     else{
-  //         continue;
-  //     }
-  // }
-
   best_horizon_line->m = best_m;
   best_horizon_line->b = best_b;
   best_horizon_line->quality = best_quality;
@@ -510,36 +491,21 @@ void getHorizonArray(struct image_t *img, int *horizon) {
     p.x = x;
     p.y = y;
     findHorizonCandidate(img, &edge_image, &p);
-    if (x == (img->w - 1)) {
-      x = p.x;
-      y = p.y;
-      x = 0;
-      y++;
-      cout << "Does this ever get executed?" << endl;
-      continue;
-    } else {
-      y = p.y;
-      x = p.x;
-      horizon[y] = x;
-      // can limit y_lim to y_max to avoid overwriting past edges, however, it
-      // would be helpful to know which one is better other idea: do snake
-      // horizon > ransacHorizon > second snake horizon only keeping lines close
-      // to the ransac Horizon
-      y_min = followHorizonLeft(&edge_image, &p, 0, (int *)horizon);
-      y_max = followHorizonRight(&edge_image, &p, (int *)horizon);
-      // could go right first and use distance to decide if we want to overwrite
-      // when moving left
-      y = y_max + 1;
-      // p.y = y_max +1;
-      x = 0;
-      // p.x = 0;
-      // if the segment is too short, scrap it
-      if (y_max - y_min < MINIMUM_HORIZON_SEGMENT_LENGTH) {
-        for (i = y_min; i <= y_max; i++) {
-          // NOTE: because "followHorizonLeft()" can overwrite valid horizon,
-          // this could remove information
-          horizon[i] = 0;
-        }
+    
+    y = p.y;
+    x = p.x;
+    horizon[y] = x;
+
+    y_min = followHorizonLeft(&edge_image, &p, 0, (int *)horizon);
+    y_max = followHorizonRight(&edge_image, &p, (int *)horizon);
+    y = y_max + 1;
+    x = 0;
+    // if the segment is too short, scrap it
+    if (y_max - y_min < MINIMUM_HORIZON_SEGMENT_LENGTH) {
+      for (i = y_min; i <= y_max; i++) {
+        // NOTE: because "followHorizonLeft()" can overwrite valid horizon,
+        // this could remove information
+        horizon[i] = 0;
       }
     }
   }
