@@ -1,3 +1,0 @@
-ivy-python
-pyserial
-breathe
