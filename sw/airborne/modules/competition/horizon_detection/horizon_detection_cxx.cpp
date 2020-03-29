@@ -423,7 +423,15 @@ void drawHorizon(struct image_t *img, int *obstacles, horizon_line_t *horizon,
   // Go through all the pixels
   for (uint16_t y = Max(0, limit_left); y < Min(IMAGE_WIDTH, limit_right + 1);
        y++) {
-    int x = (int)round(horizon->m * y + horizon->b);
+    
+    int x;
+
+    if (obstacles[y] >= 0) {
+      x = obstacles[y];
+    } else {
+      x = (int)round(horizon->m * y + horizon->b);
+    }
+
     if (x >= img->w || x < 0) {
       continue;
     }

@@ -27,7 +27,7 @@ extern "C" {
 
 int current_state = STATE_CONTINUE;
 
-float straight_speed = 1.;
+float straight_speed = 1.5;
 
 int hold = 0;
 
@@ -42,7 +42,7 @@ bool of_na = false;
 void competition_init() {
   CompetitionInit();
   guidance_h_SetMaxSpeed(10.0f);
-  guidance_h.gains.v = 100.;
+  guidance_h.gains.v = 150.;
 }
 
 uint8_t tick = 0;
@@ -138,12 +138,17 @@ void competition_loop() {
       int ends[30];
       int currentSegment = 0;
       bool inSegment = false;
+
+      float pitchThreshold = 20 * M_PI / 180.;
+      
+      float upperBound = Max(10, Min(- 340 * eulers->theta, 240));
+
       for (uint16_t i = 0; i < IMAGE_WIDTH; ++i) {
         int val = obstacleArray[i];
-        if (inSegment && (val <= 50 || val >= 180)) {
+        if (inSegment && (val < 0 || val >= upperBound)) {
           ends[currentSegment++] = i;
           inSegment = false;
-        } else if (!inSegment && (val > 50 && val < 180)) {
+        } else if (!inSegment && (val >= 0 && val < upperBound)) {
           begins[currentSegment] = i;
           inSegment = true;
         }
@@ -159,12 +164,12 @@ void competition_loop() {
       for (int j = 0; j < currentSegment; ++j) {
         //printf("#%d - begin: %d, end: %d\n", j, begins[j], ends[j]);
         //printf("%d ", ends[j] - begins[j]);
-        if (ends[j] - begins[j] < 20)
-          continue;
+        //if (ends[j] - begins[j] < 20)
+        //  continue;
         totalLength += ends[j] - begins[j];
       }
       //printf("\n");
-      if (totalLength > 260) {
+      if (totalLength > 60) {
         setSpeed(0);
         current_state = STATE_FIND_HEADING;
         printf("[HD_ACT] Find heading\n");
