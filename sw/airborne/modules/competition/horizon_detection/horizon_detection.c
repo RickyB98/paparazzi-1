@@ -179,7 +179,7 @@ int findBestHeadingDirection(int* obstacles){
         best_last = i;
     }
     // return center pixel of safe section
-    return (int)(best_last-best_first)/2;
+    return (int)(best_last+best_first)/2;
 }
 
 int findCenterHorizonHeight(full_horizon_t *fullHorizon){

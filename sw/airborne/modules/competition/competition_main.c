@@ -108,14 +108,20 @@ void competition_loop() {
         setSpeed(straight_speed);
         setHeadingRate(0.);
       } break;
-      case OF_ACT_LEFT: /*{
+      case OF_ACT_LEFT: {
         fprintf(stderr, "[OF_ACT] Go left\n");
-        current_state = STATE_FIND_HEADING;
-      } break;*/
+        setSpeed(0);
+        setHeadingRate(-60 * M_PI / 180.);
+        hold = 30;
+        current_state = STATE_WAIT_HEADING;
+      } break;
       case OF_ACT_RIGHT: {
-        // fprintf(stderr, "[OF_ACT] Go right\n");
-        printf("[OF_ACT] Find heading\n");
-        current_state = STATE_FIND_HEADING;
+        fprintf(stderr, "[OF_ACT] Go right\n");
+        setSpeed(0);
+        setHeadingRate(60 * M_PI / 180.);
+        hold = 30;
+        //printf("[OF_ACT] Find heading\n");
+        current_state = STATE_WAIT_HEADING;
       } break;
       }
     } else {
@@ -178,11 +184,11 @@ void competition_loop() {
 
   } break;
   case STATE_FIND_HEADING: {
-    int hdBestHeading = hdGetBestHeading() - 240;
+    int hdBestHeading = hdGetBestHeading() - 260;
     //setHeading(eulers->psi + hdBestHeading / 240. * 45 * M_PI / 180.);
 
-    float rate = hdBestHeading / 240. * M_PI_4;
-    printf("-> rate: %f\n", rate);
+    float rate = hdBestHeading / 260. * M_PI_4;
+    printf("-> rate: %f (bestHeading w/offset: %d)\n", rate, hdBestHeading);
     setHeadingRate(rate);
     setSpeed(0);
     hold = 20;
