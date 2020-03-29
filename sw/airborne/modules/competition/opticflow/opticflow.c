@@ -56,6 +56,9 @@ uint16_t ret_corners_length = 0;
 uint8_t pyramid = 2;
 uint8_t reset_below_points = 10;
 uint8_t fast9_threshold = 15;
+uint16_t lk_max_iterations = 25;
+uint16_t lk_step_threshold = 4500;
+uint8_t of_min_to_average = 2;
 
 float factor = 2000.;
 
@@ -78,7 +81,7 @@ float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 uint8_t suggested_action = OF_ACT_STRAIGHT;
 
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 10);
+  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 7);
   OpticflowInit();
 }
 
@@ -231,7 +234,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
   clock_t lk_tic = clock();
   #endif
   struct flow_t *flow =
-      opticFlowLK(img2, img1, valid_corners, &vcc, 5, (uint16_t)factor, 20, 250,
+      opticFlowLK(img2, img1, valid_corners, &vcc, 5, (uint16_t)factor, lk_max_iterations, lk_step_threshold,
                   MAX_POINTS, pyramid, 1);
   #ifdef OPTICFLOW_TIMING
   clock_t lk_toc = clock();
@@ -243,7 +246,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
 
   for (int i = 0; i < vcc; ++i) {
     int idx = valid_corners_idx[i];
-    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 60) {
+    if (flow[i].error == LARGE_FLOW_ERROR || flow[i].pos.count >= 25) {
       tracking[idx].valid = false;
       continue;
     }
@@ -366,7 +369,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
         first = false;
       }
       //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if ((front_speed * ty < 3 || front_speed * tx < 1) && to_average >= 3) { // to_average >= 10
+      if ((front_speed * ty < 10 || front_speed * tx < 10) && to_average >= of_min_to_average) { // to_average >= 10
         ++close;
         //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
         /* if (front_speed * ty < 1.2){

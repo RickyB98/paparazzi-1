@@ -14,6 +14,9 @@ extern uint8_t max_points;
 extern uint8_t reset_below_points;
 extern uint8_t pyramid;
 extern uint8_t fast9_threshold;
+extern uint16_t lk_step_threshold;
+extern uint16_t lk_max_iterations;
+extern uint8_t of_min_to_average;
 
 struct image_t* store_image(struct image_t* img);
 void draw_current_corners(struct image_t *img, struct point_t* positive_points, int positive_points_size);
