@@ -28,6 +28,7 @@
     <program name="Environment Simulator" command="sw/simulator/gaia"/>
     <program name="NatNet" command="sw/ground_segment/misc/natnet2ivy"/>
     <program name="Gazebo" command="sw/tools/gzclient_launcher.sh"/>
+    <program name="Real-time Distance Counter" command="sw/ground_segment/python/distance_counter/dist.py"/>
   </section>
   <section name="sessions">
   <session name="Simulation - Gazebo">
@@ -98,32 +99,8 @@
         <arg flag="-ac 9999" constant="@AC_ID"/>
       </program>
     </session>
-    <session name="Simulation - Gazebo - UDP">
-      <program name="Simulator">
-        <arg flag="-a" constant="@AIRCRAFT"/>
-        <arg flag="-t" constant="nps"/>
-      </program>
-      <program name="Data Link">
-        <arg flag="-udp"/>
-	<arg flag="-udp_broadcast"/>
-	<arg flag="-udp_broadcast_addr" constant="192.168.2.255"/>
-        <arg flag="-ping_period" constant="100"/>
-      </program>
-      <program name="Server">
-        <arg flag="-n"/>
-      </program>
-      <program name="GCS">
-        <arg flag="-speech"/>
-        <arg flag="-maximize"/>
-        <arg flag="-center_ac"/>
-        <arg flag="-mercator"/>
-        <arg flag="-maps_no_http"/>
-        <arg flag="-track_size" constant="200"/>
-        <arg flag="-zoom" constant="40."/>
-      </program>
-      <program name="Gazebo"/>
+    <session name="Distance Counter">
+      <program name="Real-time Distance Counter"/>
     </session>
-
-
   </section>
 </control_panel>
