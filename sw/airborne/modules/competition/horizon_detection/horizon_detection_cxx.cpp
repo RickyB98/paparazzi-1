@@ -45,7 +45,7 @@ uint8_t cf_umax = 0;
 uint8_t cf_vmin = 0;
 uint8_t cf_vmax = 0;
 // RANSAC Horizon settings
-bool draw = true;
+bool draw = false;
 uint8_t ransac_threshold = 1;
 uint8_t ransac_iter = 1;
 uint8_t sec_horizon_threshold = 1;

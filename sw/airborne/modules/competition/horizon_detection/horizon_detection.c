@@ -10,7 +10,7 @@ extern "C" {
 
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 
-//#define HD_TIMING // comment to disable timings
+#define HD_TIMING // comment to disable timings
 
 // local function declarations
 struct image_t * horizon_detection_callback(struct image_t *img);
@@ -59,11 +59,22 @@ struct image_t * horizon_detection_callback(struct image_t *img){
         return NULL;
     }
 
+    #ifdef HD_TIMING
+    clock_t get_ha_tic = clock();
+    #endif
     int horizon_a[IMAGE_WIDTH] = {0};
     getHorizonArray(img, (int*) horizon_a);
+    #ifdef HD_TIMING
+    clock_t get_ha_toc = clock();
+    double get_ha_time = (double) (get_ha_toc - get_ha_tic) / CLOCKS_PER_SEC;
+    printf("[HD_HA] %f - max freq: %f\n", get_ha_time, 1/get_ha_time);
+    #endif
 
     horizon_line_t best_horizon_l = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}}, sec_horizon_l = {0.0f, 0.0f, 0, {0, IMAGE_WIDTH-1}};
     
+    #ifdef HD_TIMING
+    clock_t rh_tic = clock();
+    #endif
     ransacHorizon((int*)horizon_a, &best_horizon_l, 0, IMAGE_WIDTH-1);
     if (best_horizon_l.m > 0){
         ransacHorizon((int*)horizon_a, &sec_horizon_l, best_horizon_l.limits[1], IMAGE_WIDTH-1);
@@ -74,6 +85,12 @@ struct image_t * horizon_detection_callback(struct image_t *img){
     else{
         // Don't calculate a second horizon
     }
+    #ifdef HD_TIMING
+    clock_t rh_toc = clock();
+    double rh_time = (double) (rh_toc - rh_tic) / CLOCKS_PER_SEC;
+    printf("[HD_RH] %f - max freq: %f\n", rh_time, 1/rh_time);
+    #endif
+
     // calculate and save full horizon
     full_horizon_t fullHorizon = mergeHorizonLines(&best_horizon_l, &sec_horizon_l);
     pthread_mutex_lock(&horizon_mutex);
@@ -82,7 +99,15 @@ struct image_t * horizon_detection_callback(struct image_t *img){
 
     // calculate and save obstacles
     int obstacles_a[IMAGE_WIDTH] = {0};
+    #ifdef HD_TIMING
+    clock_t fofh_tic = clock();
+    #endif
     findObstaclesFullHorizon((int*) obstacles_a, (int*) horizon_a, &fullHorizon);
+    #ifdef HD_TIMING
+    clock_t fofh_toc = clock();
+    double fofh_time = (double) (fofh_toc - fofh_tic) / CLOCKS_PER_SEC;
+    printf("[HD_FOFH] %f - max freq: %f\n", fofh_time, 1/fofh_time);
+    #endif
     pthread_mutex_lock(&obstacle_mutex);
     memcpy(gl_obstacles, obstacles_a, sizeof(int)*IMAGE_WIDTH);
     pthread_mutex_unlock(&obstacle_mutex);
@@ -123,7 +148,7 @@ void horizon_detection_init() {
     sec_horizon_threshold = HORIZON_DETECTION_SECONDARY_HORIZON_THRESHOLD;
     obstacle_threshold = HORIZON_DETECTION_OBSTACLE_THRESHOLD;
     
-    cv_add_to_device(&COMPETITION_CAMERA_FRONT, horizon_detection_callback, 20);
+    cv_add_to_device_async(&COMPETITION_CAMERA_FRONT, horizon_detection_callback, 2, 5);
 
     pthread_mutex_init(&obstacle_mutex, NULL);
     pthread_mutex_init(&horizon_mutex, NULL);

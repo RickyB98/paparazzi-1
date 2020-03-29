@@ -30,13 +30,13 @@ extern "C" {
 #define ABS(x) (((x) < 0 ? -(x) : (x)))
 
 #define MAX_TRACK 30
-#define MAX_POINTS 150
+#define MAX_POINTS 50
 
 #ifndef OPTICFLOW_DRAW
 #define OPTICFLOW_DRAW TRUE
 #endif
 
-//#define OPTICFLOW_TIMING
+#define OPTICFLOW_TIMING
 
 typedef struct point_tracking_s {
   int count;
@@ -81,7 +81,7 @@ float xfoeVec[AVERAGES], yfoeVec[AVERAGES];
 uint8_t suggested_action = OF_ACT_STRAIGHT;
 
 void opticflow_init() {
-  cv_add_to_device(&COMPETITION_CAMERA_FRONT, store_image, 7);
+  cv_add_to_device_async(&COMPETITION_CAMERA_FRONT, store_image, 10, 7);
   OpticflowInit();
 }
 
@@ -369,7 +369,7 @@ void parse_images(struct point_t **positive_points, int *positive_points_size) {
         first = false;
       }
       //fprintf(stderr, "[TTC] y: %f, tx: %f, ty: %f\n", y_dist, tx, ty);
-      if ((front_speed * ty < 10 || front_speed * tx < 10) && to_average >= of_min_to_average) { // to_average >= 10
+      if ((front_speed * ty < 3 || front_speed * tx < 1) && to_average >= of_min_to_average) { // to_average >= 10
         ++close;
         //fprintf(stderr, "POINT [%d] mean TTC: %f = ", i, lala); //check
         /* if (front_speed * ty < 1.2){

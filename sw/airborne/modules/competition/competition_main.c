@@ -27,7 +27,7 @@ extern "C" {
 
 int current_state = STATE_CONTINUE;
 
-float straight_speed = 1.5;
+float straight_speed = 1.;
 
 int hold = 0;
 
