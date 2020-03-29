@@ -398,7 +398,10 @@ void findObstacles(int *obstacles, int *horizon, horizon_line_t *horizon_line,
     diff = (int)round(horizon[i] - horizon_line->m * i - horizon_line->b);
     if (abs(diff) > obstacle_threshold) {
       obstacles[i] = horizon[i];
-    } else {
+    } else if(horizon_line->m == 0 && horizon_line->b==0 && horizon[i] ==0){
+        obstacles[i] = 0;
+    }
+    else {
       obstacles[i] = -1;
       continue;
     }
