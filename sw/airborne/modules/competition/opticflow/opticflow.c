@@ -36,7 +36,7 @@ extern "C" {
 #define OPTICFLOW_DRAW TRUE
 #endif
 
-#define OPTICFLOW_TIMING
+//#define OPTICFLOW_TIMING
 
 typedef struct point_tracking_s {
   int count;
